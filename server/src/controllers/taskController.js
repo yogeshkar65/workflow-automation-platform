@@ -17,3 +17,25 @@ exports.createTask = async(req,res) =>{
         res.status(500).json({message : "Task creation failed", error : error.message})
     }
 };
+exports.getTasks = async (req,res) =>{
+    try{
+        let tasks;
+        if(req.user.role == "admin"){
+            tasks = await Task.find()
+                    .populate("createdBy", "name email")
+                    .populate("assignedTo", "name email");
+        }
+        else{
+            tasks = await Task.find({assignedTo : req.user._id})
+                    .populate("createdBy", "name email")
+                    .populate("assignedTo", "name email");
+        }
+        res.status(200).json(tasks);
+    }
+    catch(error){
+        res.status(500).json({
+            message : "Failed to fetch tasks",
+            error : error.message
+        });
+    }
+};
