@@ -94,3 +94,24 @@ exports.updateTaskStatus = async(req,res) =>{
         });
     }
 };
+exports.getTaskById = async(req,res) =>{
+    try{
+        const { id } =req.params;
+        const task = await Task.findById(id)
+                    .populate("createdBy", "name email")
+                    .populate("assignedTo", "name email");
+        if(!task){
+            return res.status(404).json({ message : "Task not found"});
+        }
+        if(req.user.role !== "admin" && task.assignedTo?._id.toString() !== req.user._id.toString()){
+            return res.status(403).json({message : "Not authorized to View task"});
+        }
+        res.status(200).json(task);
+    }
+    catch(error){
+        res.status(500).json({
+            message : "Failed to fetch task",
+            error : error.message
+        });
+    }
+};
