@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const {protect} = require("../middlewares/authMiddleware");
-const { registerUser, loginUser, getProfile } = require("../controllers/authController");
+const { registerUser, loginUser, getProfile } = require("../controllers/authcontroller");
 const { adminOnly } = require("../middlewares/roleMiddleware");
 router.post("/register",registerUser);
 router.post("/login", loginUser);
