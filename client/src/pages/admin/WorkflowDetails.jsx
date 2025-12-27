@@ -15,29 +15,30 @@
 // import { useParams, useNavigate } from "react-router-dom";
 // import api from "../../services/api";
 
-// /* =========================
-//    STATUS ORDER
-// ========================= */
+// /* ===== STATUS FLOW ===== */
 // const STATUS_ORDER = ["pending", "in-progress", "completed"];
 
-// /* =========================
-//    PROGRESS HELPERS
-// ========================= */
+// /* ===== STATUS COLORS ===== */
+// const STATUS_COLORS = {
+//   pending: { bg: "#fdecea", color: "#d32f2f" },
+//   "in-progress": { bg: "#fff8e1", color: "#f9a825" },
+//   completed: { bg: "#e8f5e9", color: "#2e7d32" },
+// };
+
+// /* ===== PROGRESS ===== */
 // const getProgress = (tasks = []) => {
-//   if (tasks.length === 0) return 0;
-//   const completed = tasks.filter((t) => t.status === "completed").length;
-//   return Math.round((completed / tasks.length) * 100);
+//   if (!tasks.length) return 0;
+//   const done = tasks.filter(t => t.status === "completed").length;
+//   return Math.round((done / tasks.length) * 100);
 // };
 
-// /* COLOR RULES YOU ASKED */
-// const getProgressColor = (value) => {
-//   if (value < 20) return "#d32f2f";       // red
-//   if (value <= 40) return "#fb8c00";      // orange
-//   if (value <= 60) return "#f9a825";      // yellow
-//   if (value <= 90) return "#81c784";      // light green
-//   return "#2e7d32";                       // dark green
+// const getProgressColor = (v) => {
+//   if (v <= 20) return "#e36565";
+//   if (v <= 40) return "#ddeb16";
+//   if (v <= 60) return "#7865da";
+//   if (v <= 90) return "#81c784";
+//   return "#2e7d32";
 // };
-
 
 // export default function WorkflowDetails() {
 //   const { workflowId } = useParams();
@@ -46,9 +47,6 @@
 //   const [workflow, setWorkflow] = useState(null);
 //   const [users, setUsers] = useState([]);
 
-//   /* =========================
-//      LOAD DATA
-//   ========================= */
 //   const loadWorkflow = async () => {
 //     const res = await api.get(`/workflows/${workflowId}`);
 //     setWorkflow(res.data);
@@ -56,14 +54,11 @@
 
 //   useEffect(() => {
 //     loadWorkflow();
-//     api.get("/users").then((res) => setUsers(res.data || []));
+//     api.get("/users").then(res => setUsers(res.data || []));
 //   }, [workflowId]);
 
 //   if (!workflow) return null;
 
-//   /* =========================
-//      TASK ACTIONS
-//   ========================= */
 //   const advanceStatus = async (task) => {
 //     const idx = STATUS_ORDER.indexOf(task.status);
 //     const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
@@ -72,9 +67,7 @@
 //   };
 
 //   const assignUser = async (taskId, userId) => {
-//     await api.post(`/tasks/${taskId}/assign`, {
-//       userId: userId || null,
-//     });
+//     await api.put(`/tasks/${taskId}/assign`, { userId: userId || null });
 //     loadWorkflow();
 //   };
 
@@ -84,18 +77,12 @@
 //     loadWorkflow();
 //   };
 
-//   /* =========================
-//      PROGRESS
-//   ========================= */
 //   const progress = getProgress(workflow.tasks);
 //   const progressColor = getProgressColor(progress);
 
-//   /* =========================
-//      UI
-//   ========================= */
 //   return (
 //     <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
-//       {/* BACK BUTTON */}
+//       {/* BACK */}
 //       <Button
 //         startIcon={<ArrowBackIcon />}
 //         sx={{ mb: 2 }}
@@ -113,55 +100,58 @@
 //         {workflow.description}
 //       </Typography>
 
-//       {/* DONUT PROGRESS */}
+//       {/* ===== DONUT (PERFECTLY CENTERED) ===== */}
 //       <Box display="flex" alignItems="center" gap={4} mb={4}>
-//         <Box position="relative" display="inline-flex">
+//         <Box
+//           sx={{
+//             position: "relative",
+//             width: 120,
+//             height: 120,
+//             display: "flex",
+//             alignItems: "center",
+//             justifyContent: "center",
+//           }}
+//         >
 //           <CircularProgress
 //             variant="determinate"
 //             value={100}
-//             size={140}
+//             size={120}
 //             thickness={6}
-//             sx={{ color: "#e0e0e0" }}
+//             sx={{
+//               color: "#e0e0e0",
+//               position: "absolute",
+//             }}
 //           />
+
 //           <CircularProgress
 //             variant="determinate"
 //             value={progress}
-//             size={140}
+//             size={120}
 //             thickness={6}
 //             sx={{
 //               color: progressColor,
 //               position: "absolute",
-//               left: 0,
 //             }}
 //           />
-//           <Box
-//             position="absolute"
-//             top={0}
-//             left={0}
-//             right={0}
-//             bottom={0}
-//             display="flex"
-//             alignItems="center"
-//             justifyContent="center"
+
+//           <Typography
+//             sx={{
+//               position: "absolute",
+//               fontWeight: 800,
+//               fontSize: "1.1rem",
+//               color: progressColor,
+//             }}
 //           >
-//             <Typography variant="h5" fontWeight={800} color={progressColor}>
-//               {progress}%
-//             </Typography>
-//           </Box>
+//             {progress}%
+//           </Typography>
 //         </Box>
 
-//         <Box>
-//           <Typography fontWeight={700}>
-//             {workflow.tasks.filter((t) => t.status === "completed").length} /{" "}
-//             {workflow.tasks.length} tasks completed
-//           </Typography>
-//           <Typography variant="caption" color="text.secondary">
-//             Workflow progress
-//           </Typography>
-//         </Box>
+//         <Typography fontWeight={700}>
+//           {workflow.tasks.filter(t => t.status === "completed").length} /{" "}
+//           {workflow.tasks.length} tasks completed
+//         </Typography>
 //       </Box>
 
-//       {/* ADD TASK */}
 //       <Button
 //         variant="contained"
 //         sx={{ mb: 3 }}
@@ -175,12 +165,10 @@
 //       <Divider sx={{ mb: 3 }} />
 
 //       {/* TASK LIST */}
-//       {workflow.tasks.length === 0 ? (
-//         <Typography color="text.secondary">
-//           No tasks in this workflow
-//         </Typography>
-//       ) : (
-//         workflow.tasks.map((task, index) => (
+//       {workflow.tasks.map((task, index) => {
+//         const c = STATUS_COLORS[task.status];
+
+//         return (
 //           <Box
 //             key={task._id}
 //             sx={{
@@ -197,7 +185,6 @@
 //               {index + 1}. {task.title}
 //             </Typography>
 
-//             {/* ASSIGN USER */}
 //             <Select
 //               size="small"
 //               value={task.assignedTo?._id || ""}
@@ -209,37 +196,31 @@
 //               <MenuItem value="">
 //                 <em>Unassigned</em>
 //               </MenuItem>
-//               {users.map((u) => (
+//               {users.map(u => (
 //                 <MenuItem key={u._id} value={u._id}>
 //                   {u.name}
 //                 </MenuItem>
 //               ))}
 //             </Select>
 
-//             {/* STATUS */}
 //             <Chip
-//               label={task.status}
+//               label={task.status.replace("-", " ")}
 //               clickable
-//               color={
-//                 task.status === "completed"
-//                   ? "success"
-//                   : task.status === "in-progress"
-//                   ? "warning"
-//                   : "default"
-//               }
 //               onClick={() => advanceStatus(task)}
+//               sx={{
+//                 bgcolor: c.bg,
+//                 color: c.color,
+//                 fontWeight: 700,
+//                 textTransform: "capitalize",
+//               }}
 //             />
 
-//             {/* DELETE */}
-//             <IconButton
-//               color="error"
-//               onClick={() => deleteTask(task._id)}
-//             >
+//             <IconButton color="error" onClick={() => deleteTask(task._id)}>
 //               <DeleteIcon />
 //             </IconButton>
 //           </Box>
-//         ))
-//       )}
+//         );
+//       })}
 //     </Box>
 //   );
 // }
@@ -260,23 +241,14 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 
-/* ===== STATUS FLOW (ADMIN CAN LOOP) ===== */
+/* ===== STATUS FLOW ===== */
 const STATUS_ORDER = ["pending", "in-progress", "completed"];
 
 /* ===== STATUS COLORS ===== */
 const STATUS_COLORS = {
-  pending: {
-    bg: "#fdecea",
-    color: "#d32f2f",
-  },
-  "in-progress": {
-    bg: "#fff8e1",
-    color: "#f9a825",
-  },
-  completed: {
-    bg: "#e8f5e9",
-    color: "#2e7d32",
-  },
+  pending: { bg: "#fdecea", color: "#d32f2f" },
+  "in-progress": { bg: "#fff8e1", color: "#f9a825" },
+  completed: { bg: "#e8f5e9", color: "#2e7d32" },
 };
 
 /* ===== PROGRESS ===== */
@@ -287,9 +259,9 @@ const getProgress = (tasks = []) => {
 };
 
 const getProgressColor = (v) => {
-  if (v < 20) return "#d32f2f";
-  if (v <= 40) return "#fb8c00";
-  if (v <= 60) return "#f9a825";
+  if (v <= 20) return "#e36565";
+  if (v <= 40) return "#ddeb16";
+  if (v <= 60) return "#7865da";
   if (v <= 90) return "#81c784";
   return "#2e7d32";
 };
@@ -301,7 +273,6 @@ export default function WorkflowDetails() {
   const [workflow, setWorkflow] = useState(null);
   const [users, setUsers] = useState([]);
 
-  /* ===== LOAD DATA ===== */
   const loadWorkflow = async () => {
     const res = await api.get(`/workflows/${workflowId}`);
     setWorkflow(res.data);
@@ -314,24 +285,18 @@ export default function WorkflowDetails() {
 
   if (!workflow) return null;
 
-  /* ===== STATUS CHANGE (CYCLIC) ===== */
   const advanceStatus = async (task) => {
     const idx = STATUS_ORDER.indexOf(task.status);
     const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
-
     await api.put(`/tasks/${task._id}/status`, { status: next });
     loadWorkflow();
   };
 
-  /* ===== ASSIGN USER ===== */
   const assignUser = async (taskId, userId) => {
-    await api.put(`/tasks/${taskId}/assign`, {
-      userId: userId || null,
-    });
+    await api.put(`/tasks/${taskId}/assign`, { userId: userId || null });
     loadWorkflow();
   };
 
-  /* ===== DELETE TASK ===== */
   const deleteTask = async (taskId) => {
     if (!window.confirm("Delete this task?")) return;
     await api.delete(`/tasks/${taskId}`);
@@ -343,14 +308,20 @@ export default function WorkflowDetails() {
 
   return (
     <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
-      {/* BACK */}
-      <Button
-        startIcon={<ArrowBackIcon />}
-        sx={{ mb: 2 }}
+      {/* ===== BACK ICON (TOP-LEFT CORNER) ===== */}
+      <IconButton
         onClick={() => navigate("/admin/workflows")}
+        sx={{
+          mb: 1,
+          ml: -1,
+          color: "primary.main",
+          "&:hover": {
+            bgcolor: "rgba(25, 118, 210, 0.08)",
+          },
+        }}
       >
-        Back to Workflows
-      </Button>
+        <ArrowBackIcon />
+      </IconButton>
 
       {/* HEADER */}
       <Typography variant="h4" fontWeight={800}>
@@ -361,39 +332,44 @@ export default function WorkflowDetails() {
         {workflow.description}
       </Typography>
 
-      {/* DONUT */}
+      {/* ===== DONUT ===== */}
       <Box display="flex" alignItems="center" gap={4} mb={4}>
-        <Box position="relative">
+        <Box
+          sx={{
+            position: "relative",
+            width: 120,
+            height: 120,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <CircularProgress
             variant="determinate"
             value={100}
             size={120}
             thickness={6}
-            sx={{ color: "#e0e0e0" }}
+            sx={{ color: "#e0e0e0", position: "absolute" }}
           />
+
           <CircularProgress
             variant="determinate"
             value={progress}
             size={120}
             thickness={6}
-            sx={{
-              color: progressColor,
-              position: "absolute",
-              left: 0,
-              top: 0,
-            }}
+            sx={{ color: progressColor, position: "absolute" }}
           />
-          <Box
-            position="absolute"
-            inset={0}
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
+
+          <Typography
+            sx={{
+              position: "absolute",
+              fontWeight: 800,
+              fontSize: "1.1rem",
+              color: progressColor,
+            }}
           >
-            <Typography fontWeight={800} color={progressColor}>
-              {progress}%
-            </Typography>
-          </Box>
+            {progress}%
+          </Typography>
         </Box>
 
         <Typography fontWeight={700}>
@@ -435,7 +411,6 @@ export default function WorkflowDetails() {
               {index + 1}. {task.title}
             </Typography>
 
-            {/* ASSIGN */}
             <Select
               size="small"
               value={task.assignedTo?._id || ""}
@@ -454,7 +429,6 @@ export default function WorkflowDetails() {
               ))}
             </Select>
 
-            {/* STATUS */}
             <Chip
               label={task.status.replace("-", " ")}
               clickable
@@ -467,7 +441,6 @@ export default function WorkflowDetails() {
               }}
             />
 
-            {/* DELETE */}
             <IconButton color="error" onClick={() => deleteTask(task._id)}>
               <DeleteIcon />
             </IconButton>
@@ -477,3 +450,4 @@ export default function WorkflowDetails() {
     </Box>
   );
 }
+

@@ -17,7 +17,7 @@ const getProgress = (tasks = []) => {
 };
 
 const getProgressColor = (value) => {
-  if (value < 30) return "#d32f2f";       // red
+  if (value <= 20) return "#d32f2f";       // red
   if (value <= 50) return "#fb8c00";      // orange
   if (value <= 70) return "#25b9f9ff";      // yellow
   if (value <= 90) return "#77c67bff";      // light green
