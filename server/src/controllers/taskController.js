@@ -1,117 +1,153 @@
-const Task = require("../models/task");
+ const Task = require("../models/task");
+const Workflow = require("../models/workflow");
 const User = require("../models/user");
-exports.createTask = async(req,res) =>{
-    try{
-        const { title, description, assignedTo} = req.body;
-        if(!title){
-            return res.status(400).json({message :"Title is required"});
-        }
-        const task = await Task.create({
-            title,
-            description,
-            assignedTo,
-            createdBy : req.user._id
-        })
-        res.status(201).json(task);
-    }
-    catch(error){
-        res.status(500).json({message : "Task creation failed", error : error.message})
-    }
+
+/* =========================
+   CREATE TASK (ADMIN)
+========================= */
+exports.createTask = async (req, res) => {
+  try {
+    const { title, workflow, assignedTo } = req.body;
+
+    const lastTask = await Task.findOne({ workflow }).sort("-order");
+
+    const task = await Task.create({
+      title,
+      workflow,
+      assignedTo: assignedTo || null,
+      createdBy: req.user._id,
+      status: "pending",
+      order: lastTask ? lastTask.order + 1 : 1,
+    });
+
+    await Workflow.findByIdAndUpdate(workflow, {
+      $push: { tasks: task._id },
+    });
+
+    res.status(201).json(task);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
-exports.getTasks = async (req,res) =>{
-    try{
-        let tasks;
-        if(req.user.role === "admin"){
-            tasks = await Task.find()
-                    .populate("createdBy", "name email")
-                    .populate("assignedTo", "name email");
-        }
-        else{
-            tasks = await Task.find({assignedTo : req.user._id})
-                    .populate("createdBy", "name email")
-                    .populate("assignedTo", "name email");
-        }
-        res.status(200).json(tasks);
+
+/* =========================
+   GET TASKS
+   ✅ ADMIN → ALL
+   ✅ USER  → ASSIGNED ONLY
+========================= */
+exports.getTasks = async (req, res) => {
+  try {
+    let query = {};
+
+    if (req.user.role === "user") {
+      query = { assignedTo: req.user._id };
     }
-    catch(error){
-        res.status(500).json({
-            message : "Failed to fetch tasks",
-            error : error.message
-        });
-    }
+
+    const tasks = await Task.find(query)
+      .populate("workflow", "title")
+      .populate("assignedTo", "name email")
+      .sort({ workflow: 1, order: 1 });
+
+    // 🔥 FILTER TASKS WITH BROKEN WORKFLOW
+    const safeTasks = tasks.filter(t => t.workflow);
+
+    res.json(safeTasks);
+  } catch (err) {
+    console.error("GET TASKS ERROR:", err);
+    res.status(500).json({ message: "Failed to load tasks" });
+  }
 };
-exports.assignTask = async(req,res) =>{
-    try{
-        const {userId} = req.body;
-        const {id} = req.params;
-        if(!userId){
-            return res.status(400).json({message : "User ID is required"});
-        }
-        const task = await Task.findById(id);
-        if(!task){
-            return res.status(404).json({message : "Task not found"});
-        }
-        const user = await User.findById(userId);
-        if(!user){
-            return res.status(404).json({message : "User not found"});
-        }
-        task.assignedTo = userId;
-        await task.save();
-        const populatedTask = await Task.findById(task._id)
-                              .populate("createdBy", "name email")
-                              .populate("assignedTo", "name email");
-        res.status(200).json(populatedTask);
+
+/* =========================
+   ASSIGN TASK (ADMIN)
+========================= */
+exports.assignTask = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    if (userId) {
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
     }
-    catch(error){
-        res.status(500).json({message : "Failed to assign task" , error : error.message});
-    }
+
+    task.assignedTo = userId || null;
+    await task.save();
+
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
-exports.updateTaskStatus = async(req,res) =>{
-    try{
-        const { status } = req.body;
-        const {id} = req.params;
-        if(!status){
-           return res.status(400).json({message: "Status is required"});
-        }
-        const task = await Task.findById(id);
-        if(!task){
-           return res.status(404).json({message: "Task not found"});
-        }
-        if(req.user.role !== "admin" && task.assignedTo?.toString() !== req.user._id.toString()){
-            return res.status(403).json({ message: "Not authorized to update this task"});
-        }
-        task.status = status;
-        await task.save();
-        const populatedTask = await Task.findById(task._id)
-                              .populate("createdBy","name email")
-                              .populate("assignedTo","name email");
-        res.status(200).json(populatedTask);                       
+
+/* =========================
+   UPDATE STATUS (SEQUENTIAL)
+========================= */
+exports.updateTaskStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!["pending", "in-progress", "completed"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
     }
-    catch(error){
-        res.status(500).json({
-            message : "Failed to update task status",
-            error : error.message
-        });
+
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    // AUTHORIZATION
+    if (
+      req.user.role !== "admin" &&
+      (!task.assignedTo ||
+        task.assignedTo.toString() !== req.user._id.toString())
+    ) {
+      return res.status(403).json({ message: "Not authorized" });
     }
+
+    // SEQUENTIAL ENFORCEMENT
+    const prevTask = await Task.findOne({
+      workflow: task.workflow,
+      order: task.order - 1,
+    });
+
+    if (prevTask && prevTask.status !== "completed") {
+      return res
+        .status(400)
+        .json({ message: "Previous task must be completed first" });
+    }
+
+    // 🔥 SAFETY (PREVENT DUPLICATE UPDATE)
+    if (task.status === status) {
+      return res.json(task);
+    }
+
+    task.status = status;
+    await task.save();
+
+    res.json(task);
+  } catch (err) {
+    console.error("UPDATE STATUS ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
 };
-exports.getTaskById = async(req,res) =>{
-    try{
-        const { id } =req.params;
-        const task = await Task.findById(id)
-                    .populate("createdBy", "name email")
-                    .populate("assignedTo", "name email");
-        if(!task){
-            return res.status(404).json({ message : "Task not found"});
-        }
-        if(req.user.role !== "admin" && task.assignedTo?._id.toString() !== req.user._id.toString()){
-            return res.status(403).json({message : "Not authorized to View task"});
-        }
-        res.status(200).json(task);
-    }
-    catch(error){
-        res.status(500).json({
-            message : "Failed to fetch task",
-            error : error.message
-        });
-    }
+
+
+/* =========================
+   DELETE TASK (ADMIN)
+========================= */
+exports.deleteTask = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    await Workflow.findByIdAndUpdate(task.workflow, {
+      $pull: { tasks: task._id },
+    });
+
+    await task.deleteOne();
+    res.json({ message: "Task deleted" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

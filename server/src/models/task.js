@@ -30,6 +30,19 @@ const taskSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+
+    workflow: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Workflow",
+      required: true,
+    },
+
+    // 🔒 STRICT SEQUENTIAL ORDER (NO DEFAULT)
+    order: {
+      type: Number,
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
