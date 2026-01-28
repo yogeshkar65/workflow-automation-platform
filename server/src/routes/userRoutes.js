@@ -4,10 +4,6 @@ const User = require("../models/user");
 const { protect } = require("../middlewares/authMiddleware");
 const { adminOnly } = require("../middlewares/roleMiddleware");
 
-/**
- * GET ALL USERS (ADMIN ONLY)
- * /api/users
- */
 router.get("/", protect, adminOnly, async (req, res) => {
   try {
     const users = await User.find().select("name email");

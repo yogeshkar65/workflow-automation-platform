@@ -13,7 +13,7 @@ import {
   Alert,
 } from "@mui/material";
 
-/* ===== STATUS CONFIG ===== */
+
 const STATUS_ORDER = ["pending", "in-progress", "completed"];
 
 const STATUS_COLORS = {
@@ -22,7 +22,7 @@ const STATUS_COLORS = {
   completed: { bg: "#e8f5e9", color: "#2e7d32" },
 };
 
-/* ===== HELPERS ===== */
+
 const getProgress = (tasks = []) => {
   if (!tasks.length) return 0;
   const done = tasks.filter(t => t.status === "completed").length;
@@ -30,8 +30,9 @@ const getProgress = (tasks = []) => {
 };
 
 const getProgressColor = (v) => {
-  if (v < 30) return "#d32f2f";
-  if (v < 60) return "#f9a825";
+  if (v <= 30) return "#d32f2f";
+  if (v <= 50) return "#e29f33ff";
+  if (v <= 80) return "#4262e1ff";
   if (v < 90) return "#81c784";
   return "#2e7d32";
 };
@@ -48,7 +49,6 @@ export default function Dashboard() {
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
 
-  /* ===== FETCH TASKS ===== */
   useEffect(() => {
     api.get("/tasks")
       .then(res => setTasks(res.data || []))
@@ -56,13 +56,11 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  /* ===== KPI COUNTS ===== */
   const total = tasks.length;
   const pending = tasks.filter(t => t.status === "pending").length;
   const inProgress = tasks.filter(t => t.status === "in-progress").length;
   const completed = tasks.filter(t => t.status === "completed").length;
 
-  /* ===== GROUP BY WORKFLOW ===== */
   const workflows = useMemo(() => {
     const map = {};
     tasks.forEach(task => {
@@ -89,7 +87,6 @@ export default function Dashboard() {
     }))
     .filter(w => w.tasks.length);
 
-  /* ===== UPDATE STATUS ===== */
   const advanceStatus = async (task, wfTasks) => {
     if (isBlocked(task, wfTasks)) {
       setError("Previous task must be completed first");
@@ -124,7 +121,7 @@ export default function Dashboard() {
     <Box sx={{ background: "#f6f8fb", minHeight: "100vh", py: 4 }}>
       <Box sx={{ maxWidth: 1100, mx: "auto", px: 2 }}>
 
-        {/* HEADER */}
+       
         <Typography variant="h4" fontWeight={800}>
           My Dashboard
         </Typography>
@@ -132,7 +129,6 @@ export default function Dashboard() {
           Tasks assigned to you
         </Typography>
 
-        {/* ===== KPI CARDS (RESPONSIVE + CLICKABLE) ===== */}
         <Box
           display="grid"
           gridTemplateColumns={{
@@ -176,7 +172,7 @@ export default function Dashboard() {
           ))}
         </Box>
 
-        {/* ===== FILTER BUTTONS ===== */}
+       
         <Box display="flex" gap={1} mb={4} flexWrap="wrap">
           {["all", "pending", "in-progress", "completed"].map(s => (
             <Button
@@ -189,7 +185,7 @@ export default function Dashboard() {
           ))}
         </Box>
 
-        {/* ===== EMPTY STATE ===== */}
+      
         {filteredWorkflows.length === 0 && (
           <Box textAlign="center" py={8} color="text.secondary">
             <Typography variant="h5" fontWeight={700}>
@@ -201,7 +197,7 @@ export default function Dashboard() {
           </Box>
         )}
 
-        {/* ===== WORKFLOWS ===== */}
+       
         {filteredWorkflows.map((wf, i) => {
           const progress = getProgress(wf.tasks);
           const color = getProgressColor(progress);
@@ -210,11 +206,11 @@ export default function Dashboard() {
             <Card key={i} sx={{ mb: 4, borderRadius: 4 }}>
               <CardContent>
 
-                {/* HEADER */}
+                
                 <Box display="flex" justifyContent="space-between" mb={2}>
                   <Typography fontWeight={800}>{wf.title}</Typography>
 
-                  {/* DONUT */}
+                 
                   <Box
                     position="relative"
                     width={54}
@@ -245,7 +241,7 @@ export default function Dashboard() {
 
                 <Divider sx={{ mb: 2 }} />
 
-                {/* TASKS */}
+               
                 {wf.tasks.map(task => {
                   const blocked = isBlocked(task, wf.tasks);
                   const c = STATUS_COLORS[task.status];

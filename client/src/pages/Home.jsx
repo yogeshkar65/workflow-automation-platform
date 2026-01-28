@@ -116,7 +116,7 @@ export default function Home() {
             {
               title: "✅ The Solution",
               desc:
-                "Structured workflows with enforced order, accountability, and live progress tracking.",
+                "Structured workflows with enforced order, accountability, and dynamic progress tracking.",
             },
           ].map((item, i) => (
             <Card

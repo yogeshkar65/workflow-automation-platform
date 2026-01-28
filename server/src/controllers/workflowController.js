@@ -148,7 +148,7 @@ exports.addTaskToWorkflow = async (req, res) => {
     });
   }
 };
-/* DELETE WORKFLOW */
+
 exports.deleteWorkflow = async (req, res) => {
   try {
     const workflow = await Workflow.findById(req.params.id);
@@ -157,7 +157,7 @@ exports.deleteWorkflow = async (req, res) => {
       return res.status(404).json({ message: "Workflow not found" });
     }
 
-    // Optional: delete all tasks inside workflow
+
     await Task.deleteMany({ workflow: workflow._id });
 
     await workflow.deleteOne();

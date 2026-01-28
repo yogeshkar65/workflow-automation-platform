@@ -23,7 +23,7 @@ export default function AdminLayout() {
 
   return (
     <Box sx={{ display: "flex" }}>
-      {/* SIDEBAR */}
+
       <Drawer
         variant="permanent"
         sx={{
@@ -39,7 +39,7 @@ export default function AdminLayout() {
           },
         }}
       >
-        {/* HEADER */}
+        
         <Box
           sx={{
             display: "flex",
@@ -59,7 +59,7 @@ export default function AdminLayout() {
           </IconButton>
         </Box>
 
-        {/* NAV */}
+       
         <List sx={{ px: 1 }}>
           {[
             { label: "Dashboard", path: "/admin" },
@@ -87,7 +87,7 @@ export default function AdminLayout() {
         </List>
       </Drawer>
 
-      {/* MAIN CONTENT */}
+    
       <Box
         component="main"
         sx={{

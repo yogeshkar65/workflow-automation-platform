@@ -37,7 +37,6 @@ const taskSchema = new mongoose.Schema(
       required: true,
     },
 
-    // 🔒 STRICT SEQUENTIAL ORDER (NO DEFAULT)
     order: {
       type: Number,
       required: true,

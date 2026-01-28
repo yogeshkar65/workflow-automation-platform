@@ -2,9 +2,7 @@
 const Workflow = require("../models/workflow");
 const User = require("../models/user");
 
-/* =========================
-   CREATE TASK (ADMIN)
-========================= */
+
 exports.createTask = async (req, res) => {
   try {
     const { title, workflow, assignedTo } = req.body;
@@ -30,11 +28,7 @@ exports.createTask = async (req, res) => {
   }
 };
 
-/* =========================
-   GET TASKS
-   ✅ ADMIN → ALL
-   ✅ USER  → ASSIGNED ONLY
-========================= */
+
 exports.getTasks = async (req, res) => {
   try {
     let query = {};
@@ -48,7 +42,6 @@ exports.getTasks = async (req, res) => {
       .populate("assignedTo", "name email")
       .sort({ workflow: 1, order: 1 });
 
-    // 🔥 FILTER TASKS WITH BROKEN WORKFLOW
     const safeTasks = tasks.filter(t => t.workflow);
 
     res.json(safeTasks);
@@ -58,9 +51,7 @@ exports.getTasks = async (req, res) => {
   }
 };
 
-/* =========================
-   ASSIGN TASK (ADMIN)
-========================= */
+
 exports.assignTask = async (req, res) => {
   try {
     const { userId } = req.body;
@@ -82,9 +73,7 @@ exports.assignTask = async (req, res) => {
   }
 };
 
-/* =========================
-   UPDATE STATUS (SEQUENTIAL)
-========================= */
+
 exports.updateTaskStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -96,7 +85,7 @@ exports.updateTaskStatus = async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    // AUTHORIZATION
+ 
     if (
       req.user.role !== "admin" &&
       (!task.assignedTo ||
@@ -105,7 +94,7 @@ exports.updateTaskStatus = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // SEQUENTIAL ENFORCEMENT
+  
     const prevTask = await Task.findOne({
       workflow: task.workflow,
       order: task.order - 1,
@@ -117,7 +106,6 @@ exports.updateTaskStatus = async (req, res) => {
         .json({ message: "Previous task must be completed first" });
     }
 
-    // 🔥 SAFETY (PREVENT DUPLICATE UPDATE)
     if (task.status === status) {
       return res.json(task);
     }
@@ -133,9 +121,6 @@ exports.updateTaskStatus = async (req, res) => {
 };
 
 
-/* =========================
-   DELETE TASK (ADMIN)
-========================= */
 exports.deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);

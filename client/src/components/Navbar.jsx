@@ -35,7 +35,6 @@ function Navbar() {
           display: "flex",
         }}
       >
-        {/* LOGO + TITLE — hard left */}
         <Box
           component={Link}
           to="/"
@@ -45,7 +44,7 @@ function Navbar() {
             gap: 1,
             textDecoration: "none",
 
-            /* subtle professional animation */
+            
             "& svg": {
               transition: "transform 0.35s ease",
             },

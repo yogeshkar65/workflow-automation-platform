@@ -17,11 +17,11 @@ const getProgress = (tasks = []) => {
 };
 
 const getProgressColor = (value) => {
-  if (value <= 20) return "#d32f2f";       // red
-  if (value <= 50) return "#fb8c00";      // orange
-  if (value <= 70) return "#25b9f9ff";      // yellow
-  if (value <= 90) return "#77c67bff";      // light green
-  return "#2e7d32";                       // dark green
+  if (value <= 20) return "#d32f2f";       
+  if (value <= 50) return "#fb8c00";      
+  if (value <= 70) return "#25b9f9ff";      
+  if (value <= 90) return "#77c67bff";      
+  return "#2e7d32";                       
 };
 
 export default function AdminWorkflows() {
@@ -29,7 +29,7 @@ export default function AdminWorkflows() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const statusFilter = searchParams.get("status"); // 👈 IMPORTANT
+  const statusFilter = searchParams.get("status"); 
 
   useEffect(() => {
     api.get("/workflows").then(res => setWorkflows(res.data || []));

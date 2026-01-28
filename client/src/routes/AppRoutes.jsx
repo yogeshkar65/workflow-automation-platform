@@ -21,21 +21,21 @@ function AppRoutes() {
   return (
     <Routes>
 
-      {/* ===== PUBLIC (WITH NAVBAR) ===== */}
+     
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Route>
 
-      {/* ===== USER ===== */}
+    
       <Route element={<ProtectedRoute />}>
         <Route element={<UserLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>
       </Route>
 
-      {/* ===== ADMIN ===== */}
+     
       <Route element={<ProtectedRoute adminOnly />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
