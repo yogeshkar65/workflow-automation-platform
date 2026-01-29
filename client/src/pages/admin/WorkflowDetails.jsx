@@ -82,22 +82,11 @@ export default function WorkflowDetails() {
 
   return (
     <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
-      {/* ===== BACK ICON (TOP-LEFT CORNER) ===== */}
-      <IconButton
-        onClick={() => navigate("/admin/workflows")}
-        sx={{
-          mb: 1,
-          ml: -1,
-          color: "primary.main",
-          "&:hover": {
-            bgcolor: "rgba(25, 118, 210, 0.08)",
-          },
-        }}
-      >
+      {/* BACK */}
+      <IconButton onClick={() => navigate("/admin/workflows")}>
         <ArrowBackIcon />
       </IconButton>
 
-      {/* HEADER */}
       <Typography variant="h4" fontWeight={800}>
         {workflow.title}
       </Typography>
@@ -106,40 +95,29 @@ export default function WorkflowDetails() {
         {workflow.description}
       </Typography>
 
-      {/* ===== DONUT ===== */}
+      {/* PROGRESS */}
       <Box display="flex" alignItems="center" gap={4} mb={4}>
-        <Box
-          sx={{
-            position: "relative",
-            width: 120,
-            height: 120,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <Box sx={{ position: "relative", width: 120, height: 120 }}>
           <CircularProgress
             variant="determinate"
             value={100}
             size={120}
-            thickness={6}
             sx={{ color: "#e0e0e0", position: "absolute" }}
           />
-
           <CircularProgress
             variant="determinate"
             value={progress}
             size={120}
-            thickness={6}
             sx={{ color: progressColor, position: "absolute" }}
           />
-
           <Typography
             sx={{
               position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               fontWeight: 800,
-              fontSize: "1.1rem",
-              color: progressColor,
             }}
           >
             {progress}%
@@ -172,8 +150,8 @@ export default function WorkflowDetails() {
           <Box
             key={task._id}
             sx={{
-              display: "grid",
-              gridTemplateColumns: "2fr 2fr 1fr auto",
+              display: "flex",
+              alignItems: "center",
               gap: 2,
               mb: 2,
               p: 2,
@@ -181,12 +159,13 @@ export default function WorkflowDetails() {
               borderRadius: 2,
             }}
           >
-            <Typography fontWeight={600}>
+            <Typography fontWeight={600} sx={{ flex: 2 }}>
               {index + 1}. {task.title}
             </Typography>
 
             <Select
               size="small"
+              sx={{ flex: 2 }}
               value={task.assignedTo?._id || ""}
               displayEmpty
               onChange={(e) =>
@@ -215,7 +194,10 @@ export default function WorkflowDetails() {
               }}
             />
 
-            <IconButton color="error" onClick={() => deleteTask(task._id)}>
+            <IconButton
+              color="error"
+              onClick={() => deleteTask(task._id)}
+            >
               <DeleteIcon />
             </IconButton>
           </Box>
@@ -224,4 +206,3 @@ export default function WorkflowDetails() {
     </Box>
   );
 }
-
