@@ -59,6 +59,7 @@ export default function WorkflowDetails() {
 
   if (!workflow) return null;
 
+  /* ===== TASK ACTIONS ===== */
   const advanceStatus = async (task) => {
     const idx = STATUS_ORDER.indexOf(task.status);
     const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
@@ -77,6 +78,13 @@ export default function WorkflowDetails() {
     loadWorkflow();
   };
 
+  /* ===== WORKFLOW DELETE ===== */
+  const deleteWorkflow = async () => {
+    if (!window.confirm("Delete this workflow? This cannot be undone.")) return;
+    await api.delete(`/workflows/${workflowId}`);
+    navigate("/admin/workflows");
+  };
+
   const progress = getProgress(workflow.tasks);
   const progressColor = getProgressColor(progress);
 
@@ -87,9 +95,27 @@ export default function WorkflowDetails() {
         <ArrowBackIcon />
       </IconButton>
 
-      <Typography variant="h4" fontWeight={800}>
-        {workflow.title}
-      </Typography>
+      {/* HEADER + WORKFLOW DELETE */}
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={1}
+      >
+        <Typography variant="h4" fontWeight={800}>
+          {workflow.title}
+        </Typography>
+
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<DeleteIcon />}
+          onClick={deleteWorkflow}
+          sx={{ textTransform: "none", fontWeight: 600 }}
+        >
+          Delete Workflow
+        </Button>
+      </Box>
 
       <Typography color="text.secondary" mb={3}>
         {workflow.description}
