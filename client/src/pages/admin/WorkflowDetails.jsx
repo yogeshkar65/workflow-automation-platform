@@ -95,17 +95,13 @@ export default function WorkflowDetails() {
         <ArrowBackIcon />
       </IconButton>
 
-      {/* HEADER + WORKFLOW DELETE */}
-      <Box
-        display="flex"
-        alignItems="center"
-        justifyContent="space-between"
-        mb={1}
-      >
-        <Typography variant="h4" fontWeight={800}>
-          {workflow.title}
-        </Typography>
+      {/* TITLE */}
+      <Typography variant="h4" fontWeight={800} mb={1}>
+        {workflow.title}
+      </Typography>
 
+      {/* DELETE WORKFLOW (ALWAYS VISIBLE) */}
+      <Box textAlign="right" mb={2}>
         <Button
           variant="outlined"
           color="error"
