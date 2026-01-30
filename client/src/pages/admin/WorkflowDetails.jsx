@@ -37,7 +37,7 @@ const STATUS_COLORS = {
 /* ===== PROGRESS ===== */
 const getProgress = (tasks = []) => {
   if (!tasks.length) return 0;
-  const done = tasks.filter(t => t.status === "completed").length;
+  const done = tasks.filter((t) => t.status === "completed").length;
   return Math.round((done / tasks.length) * 100);
 };
 
@@ -68,7 +68,7 @@ export default function WorkflowDetails() {
 
   useEffect(() => {
     loadWorkflow();
-    api.get("/users").then(res => setUsers(res.data || []));
+    api.get("/users").then((res) => setUsers(res.data || []));
   }, [workflowId]);
 
   /* ===== STATUS CHANGE ===== */
@@ -134,7 +134,7 @@ export default function WorkflowDetails() {
   /* ===== LOADING ===== */
   if (loading) {
     return (
-      <Box sx={{ width: "100%", px: 3, py: 3 }}>
+      <Box sx={{ maxWidth: 1200, mx: "auto", px: 3, py: 3 }}>
         <Skeleton width={200} height={40} />
         <Skeleton width="40%" height={24} sx={{ my: 2 }} />
         <Box display="flex" gap={4} mt={4}>
@@ -147,7 +147,7 @@ export default function WorkflowDetails() {
 
   if (!workflow) {
     return (
-      <Box p={3}>
+      <Box sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
         <Alert severity="error">Workflow not found</Alert>
       </Box>
     );
@@ -171,13 +171,13 @@ export default function WorkflowDetails() {
       <Dialog open={!!deleteTaskId} onClose={() => setDeleteTaskId(null)}>
         <DialogTitle>Delete Task</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            This action cannot be undone. Are you sure?
-          </DialogContentText>
+          <DialogContentText>This action cannot be undone. Are you sure?</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteTaskId(null)}>Cancel</Button>
-          <Button color="error" onClick={confirmDeleteTask}>Delete</Button>
+          <Button color="error" onClick={confirmDeleteTask}>
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -191,12 +191,21 @@ export default function WorkflowDetails() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmWorkflowDelete(false)}>Cancel</Button>
-          <Button color="error" onClick={confirmDeleteWorkflow}>Delete</Button>
+          <Button color="error" onClick={confirmDeleteWorkflow}>
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* ===== MAIN CONTENT ===== */}
-      <Box sx={{ width: "100%", px: 3, py: 2 }}>
+      {/* ===== MAIN CONTENT (FIXED SPACING HERE) ===== */}
+      <Box
+        sx={{
+          maxWidth: 1200,
+          mx: "auto",
+          px: { xs: 2, md: 3 },
+          py: 2,
+        }}
+      >
         {/* Header */}
         <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
           <Box display="flex" alignItems="center" gap={1}>
@@ -233,14 +242,11 @@ export default function WorkflowDetails() {
           </Box>
 
           <Typography fontWeight={700}>
-            {workflow.tasks.filter(t => t.status === "completed").length} / {workflow.tasks.length} tasks completed
+            {workflow.tasks.filter((t) => t.status === "completed").length} / {workflow.tasks.length} tasks completed
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          onClick={() => navigate(`/admin/workflows/${workflowId}/createTask`)}
-        >
+        <Button variant="contained" onClick={() => navigate(`/admin/workflows/${workflowId}/createTask`)}>
           + Add Task
         </Button>
 
@@ -275,7 +281,7 @@ export default function WorkflowDetails() {
                 <MenuItem value="">
                   <em>Unassigned</em>
                 </MenuItem>
-                {users.map(u => (
+                {users.map((u) => (
                   <MenuItem key={u._id} value={u._id}>
                     {u.name}
                   </MenuItem>
