@@ -14,6 +14,12 @@ import {
   Typography,
   Backdrop,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useLocation } from "react-router-dom";
@@ -30,7 +36,12 @@ const STATUS_COLORS = {
 function AdminTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+
+  /* ===== CENTER ACTION ===== */
+  const [actionText, setActionText] = useState(null);
+
+  /* ===== DELETE DIALOG ===== */
+  const [deleteId, setDeleteId] = useState(null);
 
   const location = useLocation();
   const statusFilter = new URLSearchParams(location.search).get("status");
@@ -55,18 +66,18 @@ function AdminTasks() {
     ? tasks.filter((t) => t.status === statusFilter)
     : tasks;
 
-  /* ===== DELETE TASK ===== */
-  const deleteTask = async (id) => {
+  /* ===== CONFIRM DELETE ===== */
+  const confirmDeleteTask = async () => {
     try {
-      setActionLoading(true);
-      showSuccess("Deleting task...");
-      await api.delete(`/tasks/${id}`);
-      setTasks((prev) => prev.filter((t) => t._id !== id));
+      setActionText("Deleting task...");
+      await api.delete(`/tasks/${deleteId}`);
+      setTasks((prev) => prev.filter((t) => t._id !== deleteId));
       showSuccess("Task deleted successfully");
     } catch {
       showError("Failed to delete task");
     } finally {
-      setActionLoading(false);
+      setDeleteId(null);
+      setActionText(null);
     }
   };
 
@@ -111,14 +122,41 @@ function AdminTasks() {
     );
   }
 
-  /* ================= TABLE ================= */
   return (
     <>
-      {/* GLOBAL ACTION LOADER */}
-      <Backdrop open={actionLoading} sx={{ zIndex: 2000 }}>
-        <CircularProgress color="inherit" />
+      {/* ===== CENTER LOADER ===== */}
+      <Backdrop
+        open={!!actionText}
+        sx={{
+          zIndex: 2000,
+          backgroundColor: "rgba(255,255,255,0.6)",
+        }}
+      >
+        <Box textAlign="center">
+          <CircularProgress sx={{ color: "#1976d2" }} />
+          <Typography mt={2} fontWeight={700} color="#1976d2">
+            {actionText}
+          </Typography>
+        </Box>
       </Backdrop>
 
+      {/* ===== DELETE CONFIRM DIALOG ===== */}
+      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
+        <DialogTitle>Delete Task</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This action cannot be undone. Are you sure?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteId(null)}>Cancel</Button>
+          <Button color="error" onClick={confirmDeleteTask}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ===== TASK TABLE ===== */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -164,8 +202,7 @@ function AdminTasks() {
                   <TableCell align="center">
                     <IconButton
                       color="error"
-                      disabled={actionLoading}
-                      onClick={() => deleteTask(task._id)}
+                      onClick={() => setDeleteId(task._id)}
                     >
                       <DeleteIcon />
                     </IconButton>

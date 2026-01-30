@@ -9,6 +9,7 @@ import {
   Skeleton,
   Backdrop,
   CircularProgress,
+  Typography,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
@@ -25,7 +26,7 @@ export default function CreateTask() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  /* ================= LOAD USERS ================= */
+  /* ===== LOAD USERS ===== */
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -41,15 +42,16 @@ export default function CreateTask() {
     fetchUsers();
   }, []);
 
-  /* ================= CREATE TASK ================= */
+  /* ===== CREATE TASK ===== */
   const submit = async () => {
     if (!title.trim()) {
       showError("Task title is required");
       return;
     }
 
-    setSubmitting(true);
     try {
+      setSubmitting(true);
+
       await api.post("/tasks", {
         title,
         assignedTo: assignedTo || null,
@@ -58,29 +60,31 @@ export default function CreateTask() {
 
       showSuccess("Task created successfully");
 
-      // Small delay so toast is visible
+      // Allow toast to be seen briefly
       setTimeout(() => {
         navigate(`/admin/workflows/${workflowId}`);
       }, 300);
     } catch (err) {
       showError(err.response?.data?.message || "Failed to create task");
-    } finally {
       setSubmitting(false);
     }
   };
 
   return (
     <>
-      {/* FULL PAGE LOADING OVERLAY */}
+      {/* ===== CENTER LOADER ===== */}
       <Backdrop
         open={submitting}
-        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          backgroundColor: "rgba(255,255,255,0.6)",
+        }}
       >
         <Box textAlign="center">
-          <CircularProgress color="inherit" />
-          <Box mt={2} fontWeight={600}>
+          <CircularProgress sx={{ color: "#1976d2" }} />
+          <Typography mt={2} fontWeight={700} color="#1976d2">
             Adding task...
-          </Box>
+          </Typography>
         </Box>
       </Backdrop>
 
@@ -121,15 +125,15 @@ export default function CreateTask() {
               </TextField>
             )}
 
-            {/* BUTTON */}
+            {/* ACTION BUTTON */}
             {loadingUsers ? (
               <Skeleton height={42} />
             ) : (
               <Button
                 fullWidth
                 variant="contained"
-                onClick={submit}
                 disabled={submitting}
+                onClick={submit}
               >
                 Create Task
               </Button>

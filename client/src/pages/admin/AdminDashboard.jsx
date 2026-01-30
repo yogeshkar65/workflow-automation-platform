@@ -221,13 +221,28 @@ export default function AdminDashboard() {
             <CardContent>
               <Box display="flex" justifyContent="space-between">
                 <Box sx={{ color: stat.color }}>{stat.icon}</Box>
-                <CircularProgress
-                  variant="determinate"
-                  value={stat.percent}
-                  size={44}
-                  thickness={5}
-                  sx={{ color: stat.color }}
-                />
+
+                {/* Donut Progress */}
+                <Box position="relative">
+                  <CircularProgress
+                    variant="determinate"
+                    value={100}
+                    size={44}
+                    thickness={5}
+                    sx={{ color: "#e0e0e0" }}
+                  />
+                  <CircularProgress
+                    variant="determinate"
+                    value={stat.percent}
+                    size={44}
+                    thickness={5}
+                    sx={{
+                      color: stat.color,
+                      position: "absolute",
+                      left: 0,
+                    }}
+                  />
+                </Box>
               </Box>
 
               <Typography variant="h4" fontWeight={800} color={stat.color} mt={1}>
@@ -294,23 +309,6 @@ export default function AdminDashboard() {
               );
             })}
           </List>
-
-          {totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={3}>
-              <Button disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-                Prev
-              </Button>
-              <Typography mx={2}>
-                {page} / {totalPages}
-              </Typography>
-              <Button
-                disabled={page === totalPages}
-                onClick={() => setPage(p => p + 1)}
-              >
-                Next
-              </Button>
-            </Box>
-          )}
         </CardContent>
       </Card>
     </Box>
