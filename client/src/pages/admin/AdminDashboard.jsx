@@ -52,7 +52,7 @@ export default function AdminDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  /* ===== CALCULATIONS (ALWAYS EXECUTED) ===== */
+  /* ===== CALCULATIONS ===== */
   const totalWorkflows = workflows.length;
 
   const completedWorkflows = workflows.filter(
@@ -133,9 +133,12 @@ export default function AdminDashboard() {
   );
 
   const totalPages = Math.ceil(workflows.length / PAGE_SIZE);
-  const paginated = workflows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated = workflows.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
 
-  /* ================= SKELETON UI ================= */
+  /* ===== SKELETON ===== */
   if (loading) {
     return (
       <Box sx={{ px: 4, py: 4, background: "#f9fbfd", minHeight: "100vh" }}>
@@ -177,7 +180,7 @@ export default function AdminDashboard() {
     );
   }
 
-  /* ================= DATA UI ================= */
+  /* ===== DATA UI ===== */
   return (
     <Box sx={{ px: 4, pt: 1, pb: 4, background: "#f9fbfd", minHeight: "100vh" }}>
       <Typography variant="h4" fontWeight={800} color={COLORS.blue}>
@@ -187,6 +190,7 @@ export default function AdminDashboard() {
         Overview of workflows and tasks
       </Typography>
 
+      {/* KPI CARDS */}
       <Box
         sx={{
           display: "grid",
@@ -237,6 +241,7 @@ export default function AdminDashboard() {
         ))}
       </Box>
 
+      {/* RECENT WORKFLOWS */}
       <Card elevation={0} sx={{ borderRadius: 4 }}>
         <CardContent>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
@@ -275,11 +280,12 @@ export default function AdminDashboard() {
                       secondary={`${w.tasks?.length || 0} tasks`}
                     />
                     <Chip
-                      label={status}
+                      label={status.replace("-", " ")}
                       sx={{
                         bgcolor: chipColor,
                         color: "#fff",
                         fontWeight: 700,
+                        textTransform: "capitalize",
                       }}
                     />
                   </ListItem>
@@ -288,6 +294,23 @@ export default function AdminDashboard() {
               );
             })}
           </List>
+
+          {totalPages > 1 && (
+            <Box display="flex" justifyContent="center" mt={3}>
+              <Button disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                Prev
+              </Button>
+              <Typography mx={2}>
+                {page} / {totalPages}
+              </Typography>
+              <Button
+                disabled={page === totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next
+              </Button>
+            </Box>
+          )}
         </CardContent>
       </Card>
     </Box>

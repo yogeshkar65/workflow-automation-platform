@@ -31,7 +31,7 @@ export default function CreateTask() {
       try {
         const res = await api.get("/users");
         setUsers(res.data || []);
-      } catch (err) {
+      } catch {
         showError("Failed to load users");
       } finally {
         setLoadingUsers(false);
@@ -57,9 +57,14 @@ export default function CreateTask() {
       });
 
       showSuccess("Task created successfully");
-      navigate(`/admin/workflows/${workflowId}`);
+
+      // Small delay so toast is visible
+      setTimeout(() => {
+        navigate(`/admin/workflows/${workflowId}`);
+      }, 300);
     } catch (err) {
       showError(err.response?.data?.message || "Failed to create task");
+    } finally {
       setSubmitting(false);
     }
   };

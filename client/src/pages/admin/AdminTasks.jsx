@@ -12,6 +12,8 @@ import {
   Skeleton,
   Box,
   Typography,
+  Backdrop,
+  CircularProgress,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useLocation } from "react-router-dom";
@@ -28,6 +30,7 @@ const STATUS_COLORS = {
 function AdminTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const location = useLocation();
   const statusFilter = new URLSearchParams(location.search).get("status");
@@ -38,7 +41,7 @@ function AdminTasks() {
       try {
         const res = await api.get("/tasks");
         setTasks(res.data || []);
-      } catch (err) {
+      } catch {
         showError("Failed to load tasks");
       } finally {
         setLoading(false);
@@ -54,14 +57,16 @@ function AdminTasks() {
 
   /* ===== DELETE TASK ===== */
   const deleteTask = async (id) => {
-    if (!window.confirm("Delete this task?")) return;
-
     try {
+      setActionLoading(true);
+      showSuccess("Deleting task...");
       await api.delete(`/tasks/${id}`);
       setTasks((prev) => prev.filter((t) => t._id !== id));
-      showSuccess("Task deleted");
-    } catch (err) {
+      showSuccess("Task deleted successfully");
+    } catch {
       showError("Failed to delete task");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -108,62 +113,70 @@ function AdminTasks() {
 
   /* ================= TABLE ================= */
   return (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell><strong>Task</strong></TableCell>
-            <TableCell><strong>Status</strong></TableCell>
-            <TableCell><strong>Assigned User</strong></TableCell>
-            <TableCell align="center"><strong>Action</strong></TableCell>
-          </TableRow>
-        </TableHead>
+    <>
+      {/* GLOBAL ACTION LOADER */}
+      <Backdrop open={actionLoading} sx={{ zIndex: 2000 }}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
 
-        <TableBody>
-          {filteredTasks.map((task) => {
-            const c = STATUS_COLORS[task.status];
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell><strong>Task</strong></TableCell>
+              <TableCell><strong>Status</strong></TableCell>
+              <TableCell><strong>Assigned User</strong></TableCell>
+              <TableCell align="center"><strong>Action</strong></TableCell>
+            </TableRow>
+          </TableHead>
 
-            return (
-              <TableRow
-                key={task._id}
-                hover
-                sx={{
-                  transition: "0.2s",
-                  "&:hover": { backgroundColor: "#f9fafb" },
-                }}
-              >
-                <TableCell>{task.title}</TableCell>
+          <TableBody>
+            {filteredTasks.map((task) => {
+              const c = STATUS_COLORS[task.status];
 
-                <TableCell>
-                  <Chip
-                    label={task.status.replace("-", " ")}
-                    sx={{
-                      bgcolor: c.bg,
-                      color: c.color,
-                      fontWeight: 600,
-                      textTransform: "capitalize",
-                    }}
-                  />
-                </TableCell>
+              return (
+                <TableRow
+                  key={task._id}
+                  hover
+                  sx={{
+                    transition: "0.2s",
+                    "&:hover": { backgroundColor: "#f9fafb" },
+                  }}
+                >
+                  <TableCell>{task.title}</TableCell>
 
-                <TableCell>
-                  {task.assignedTo?.name || "Unassigned"}
-                </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={task.status.replace("-", " ")}
+                      sx={{
+                        bgcolor: c.bg,
+                        color: c.color,
+                        fontWeight: 600,
+                        textTransform: "capitalize",
+                      }}
+                    />
+                  </TableCell>
 
-                <TableCell align="center">
-                  <IconButton
-                    color="error"
-                    onClick={() => deleteTask(task._id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
+                  <TableCell>
+                    {task.assignedTo?.name || "Unassigned"}
+                  </TableCell>
+
+                  <TableCell align="center">
+                    <IconButton
+                      color="error"
+                      disabled={actionLoading}
+                      onClick={() => deleteTask(task._id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </>
   );
 }
 

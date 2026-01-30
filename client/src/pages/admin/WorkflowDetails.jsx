@@ -32,7 +32,7 @@ const STATUS_COLORS = {
 /* ===== PROGRESS ===== */
 const getProgress = (tasks = []) => {
   if (!tasks.length) return 0;
-  const done = tasks.filter((t) => t.status === "completed").length;
+  const done = tasks.filter(t => t.status === "completed").length;
   return Math.round((done / tasks.length) * 100);
 };
 
@@ -69,7 +69,7 @@ export default function WorkflowDetails() {
 
   useEffect(() => {
     loadWorkflow();
-    api.get("/users").then((res) => setUsers(res.data || []));
+    api.get("/users").then(res => setUsers(res.data || []));
   }, [workflowId]);
 
   /* ===== TASK ACTIONS ===== */
@@ -78,10 +78,15 @@ export default function WorkflowDetails() {
       setActionLoading(true);
       const idx = STATUS_ORDER.indexOf(task.status);
       const next = STATUS_ORDER[idx + 1];
-      if (!next) return;
+
+      if (!next) {
+        setActionLoading(false);
+        return;
+      }
 
       await api.put(`/tasks/${task._id}/status`, { status: next });
       await loadWorkflow();
+      toast.success("Task status updated");
     } catch {
       toast.error("Failed to update task status");
     } finally {
@@ -94,6 +99,7 @@ export default function WorkflowDetails() {
       setActionLoading(true);
       await api.put(`/tasks/${taskId}/assign`, { userId: userId || null });
       await loadWorkflow();
+      toast.success("Task assigned successfully");
     } catch {
       toast.error("Failed to assign user");
     } finally {
@@ -129,13 +135,12 @@ export default function WorkflowDetails() {
     }
   };
 
-  /* ================== LOADING ================== */
+  /* ===== LOADING STATE ===== */
   if (loading) {
     return (
       <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
-        <Skeleton width={120} height={40} />
-        <Skeleton width="50%" height={42} sx={{ my: 2 }} />
-        <Skeleton width="70%" height={20} />
+        <Skeleton width={140} height={40} />
+        <Skeleton width="60%" height={24} sx={{ my: 2 }} />
         <Box display="flex" gap={4} mt={4}>
           <Skeleton variant="circular" width={120} height={120} />
           <Skeleton width="40%" height={30} />
@@ -187,6 +192,7 @@ export default function WorkflowDetails() {
           {workflow.description}
         </Typography>
 
+        {/* PROGRESS */}
         <Box display="flex" alignItems="center" gap={4} mb={4}>
           <Box sx={{ position: "relative", width: 120, height: 120 }}>
             <CircularProgress
@@ -216,7 +222,7 @@ export default function WorkflowDetails() {
           </Box>
 
           <Typography fontWeight={700}>
-            {workflow.tasks.filter((t) => t.status === "completed").length} /{" "}
+            {workflow.tasks.filter(t => t.status === "completed").length} /{" "}
             {workflow.tasks.length} tasks completed
           </Typography>
         </Box>
@@ -233,6 +239,7 @@ export default function WorkflowDetails() {
 
         <Divider sx={{ my: 3 }} />
 
+        {/* TASK LIST */}
         {workflow.tasks.map((task, index) => {
           const c = STATUS_COLORS[task.status];
           return (
@@ -246,6 +253,7 @@ export default function WorkflowDetails() {
                 p: 2,
                 border: "1px solid #e0e0e0",
                 borderRadius: 2,
+                "&:hover": { background: "#fafafa" },
               }}
             >
               <Typography sx={{ flex: 2 }} fontWeight={600}>
@@ -263,7 +271,7 @@ export default function WorkflowDetails() {
                 <MenuItem value="">
                   <em>Unassigned</em>
                 </MenuItem>
-                {users.map((u) => (
+                {users.map(u => (
                   <MenuItem key={u._id} value={u._id}>
                     {u.name}
                   </MenuItem>
@@ -271,13 +279,14 @@ export default function WorkflowDetails() {
               </Select>
 
               <Chip
-                label={task.status}
+                label={task.status.replace("-", " ")}
                 clickable
                 onClick={() => advanceStatus(task)}
                 sx={{
                   bgcolor: c.bg,
                   color: c.color,
                   fontWeight: 700,
+                  textTransform: "capitalize",
                 }}
               />
 
