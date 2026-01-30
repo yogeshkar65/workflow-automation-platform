@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
+import { showSuccess, showError } from "../../utils/toast";
 
 export default function CreateTask() {
   const { workflowId } = useParams();
@@ -24,14 +25,14 @@ export default function CreateTask() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  /* ===== LOAD USERS ===== */
+  /* ================= LOAD USERS ================= */
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const res = await api.get("/users");
         setUsers(res.data || []);
       } catch (err) {
-        console.error(err);
+        showError("Failed to load users");
       } finally {
         setLoadingUsers(false);
       }
@@ -40,9 +41,12 @@ export default function CreateTask() {
     fetchUsers();
   }, []);
 
-  /* ===== CREATE TASK ===== */
+  /* ================= CREATE TASK ================= */
   const submit = async () => {
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      showError("Task title is required");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -52,28 +56,33 @@ export default function CreateTask() {
         workflow: workflowId,
       });
 
-      // redirect back to workflow (WorkflowDetails will refetch)
+      showSuccess("Task created successfully");
       navigate(`/admin/workflows/${workflowId}`);
     } catch (err) {
-      console.error(err);
+      showError(err.response?.data?.message || "Failed to create task");
       setSubmitting(false);
     }
   };
 
   return (
     <>
-      {/* LOADING OVERLAY WHILE CREATING TASK */}
+      {/* FULL PAGE LOADING OVERLAY */}
       <Backdrop
         open={submitting}
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
       >
-        <CircularProgress color="inherit" />
+        <Box textAlign="center">
+          <CircularProgress color="inherit" />
+          <Box mt={2} fontWeight={600}>
+            Adding task...
+          </Box>
+        </Box>
       </Backdrop>
 
       <Box maxWidth={500} mx="auto" mt={4}>
         <Card>
           <CardContent>
-            {/* TASK TITLE */}
+            {/* TITLE */}
             {loadingUsers ? (
               <Skeleton height={56} sx={{ mb: 2 }} />
             ) : (
@@ -107,7 +116,7 @@ export default function CreateTask() {
               </TextField>
             )}
 
-            {/* CREATE BUTTON */}
+            {/* BUTTON */}
             {loadingUsers ? (
               <Skeleton height={42} />
             ) : (

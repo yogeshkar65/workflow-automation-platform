@@ -11,9 +11,10 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Skeleton,
 } from "@mui/material";
 
-
+/* ===== STATUS FLOW ===== */
 const STATUS_ORDER = ["pending", "in-progress", "completed"];
 
 const STATUS_COLORS = {
@@ -22,10 +23,9 @@ const STATUS_COLORS = {
   completed: { bg: "#e8f5e9", color: "#2e7d32" },
 };
 
-
 const getProgress = (tasks = []) => {
   if (!tasks.length) return 0;
-  const done = tasks.filter(t => t.status === "completed").length;
+  const done = tasks.filter((t) => t.status === "completed").length;
   return Math.round((done / tasks.length) * 100);
 };
 
@@ -39,7 +39,7 @@ const getProgressColor = (v) => {
 
 const isBlocked = (task, tasks) => {
   if (task.order === 1) return false;
-  const prev = tasks.find(t => t.order === task.order - 1);
+  const prev = tasks.find((t) => t.order === task.order - 1);
   return prev && prev.status !== "completed";
 };
 
@@ -50,20 +50,69 @@ export default function Dashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get("/tasks")
-      .then(res => setTasks(res.data || []))
+    api
+      .get("/tasks")
+      .then((res) => setTasks(res.data || []))
       .catch(() => setError("Failed to load tasks"))
       .finally(() => setLoading(false));
   }, []);
 
+  /* ================= SKELETON LOADING ================= */
+  if (loading) {
+    return (
+      <Box sx={{ background: "#f6f8fb", minHeight: "100vh", py: 4 }}>
+        <Box sx={{ maxWidth: 1100, mx: "auto", px: 2 }}>
+          <Skeleton width="40%" height={40} />
+          <Skeleton width="60%" height={20} sx={{ mb: 4 }} />
+
+          {/* STAT CARDS */}
+          <Box
+            display="grid"
+            gridTemplateColumns={{
+              xs: "1fr",
+              sm: "repeat(2, 1fr)",
+              md: "repeat(4, 1fr)",
+            }}
+            gap={3}
+            mb={4}
+          >
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardContent>
+                  <Skeleton height={40} width="50%" />
+                  <Skeleton height={20} width="70%" />
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+
+          {/* WORKFLOW CARDS */}
+          {[1, 2].map((i) => (
+            <Card key={i} sx={{ mb: 4, borderRadius: 4 }}>
+              <CardContent>
+                <Skeleton width="40%" height={24} />
+                <Divider sx={{ my: 2 }} />
+
+                {[1, 2, 3].map((j) => (
+                  <Skeleton key={j} height={28} sx={{ mb: 1 }} />
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+      </Box>
+    );
+  }
+
+  /* ================= DATA LOGIC ================= */
   const total = tasks.length;
-  const pending = tasks.filter(t => t.status === "pending").length;
-  const inProgress = tasks.filter(t => t.status === "in-progress").length;
-  const completed = tasks.filter(t => t.status === "completed").length;
+  const pending = tasks.filter((t) => t.status === "pending").length;
+  const inProgress = tasks.filter((t) => t.status === "in-progress").length;
+  const completed = tasks.filter((t) => t.status === "completed").length;
 
   const workflows = useMemo(() => {
     const map = {};
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       const wfId = task.workflow._id;
       if (!map[wfId]) {
         map[wfId] = {
@@ -78,14 +127,14 @@ export default function Dashboard() {
   }, [tasks]);
 
   const filteredWorkflows = workflows
-    .map(w => ({
+    .map((w) => ({
       ...w,
       tasks:
         filter === "all"
           ? w.tasks
-          : w.tasks.filter(t => t.status === filter),
+          : w.tasks.filter((t) => t.status === filter),
     }))
-    .filter(w => w.tasks.length);
+    .filter((w) => w.tasks.length);
 
   const advanceStatus = async (task, wfTasks) => {
     if (isBlocked(task, wfTasks)) {
@@ -99,29 +148,20 @@ export default function Dashboard() {
 
     try {
       await api.put(`/tasks/${task._id}/status`, { status: next });
-      setTasks(prev =>
-        prev.map(t =>
+      setTasks((prev) =>
+        prev.map((t) =>
           t._id === task._id ? { ...t, status: next } : t
         )
       );
     } catch (err) {
-      setError(err.response?.data?.message || "Status update failed");
+      setError("Status update failed");
     }
   };
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={6}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
+  /* ================= UI ================= */
   return (
     <Box sx={{ background: "#f6f8fb", minHeight: "100vh", py: 4 }}>
       <Box sx={{ maxWidth: 1100, mx: "auto", px: 2 }}>
-
-       
         <Typography variant="h4" fontWeight={800}>
           My Dashboard
         </Typography>
@@ -129,6 +169,7 @@ export default function Dashboard() {
           Tasks assigned to you
         </Typography>
 
+        {/* STAT CARDS */}
         <Box
           display="grid"
           gridTemplateColumns={{
@@ -142,9 +183,19 @@ export default function Dashboard() {
           {[
             { key: "all", label: "All", value: total, color: "#1976d2" },
             { key: "pending", label: "Pending", value: pending, color: "#d32f2f" },
-            { key: "in-progress", label: "In Progress", value: inProgress, color: "#f9a825" },
-            { key: "completed", label: "Completed", value: completed, color: "#2e7d32" },
-          ].map(k => (
+            {
+              key: "in-progress",
+              label: "In Progress",
+              value: inProgress,
+              color: "#f9a825",
+            },
+            {
+              key: "completed",
+              label: "Completed",
+              value: completed,
+              color: "#2e7d32",
+            },
+          ].map((k) => (
             <Card
               key={k.key}
               onClick={() => setFilter(k.key)}
@@ -172,9 +223,9 @@ export default function Dashboard() {
           ))}
         </Box>
 
-       
+        {/* FILTER BUTTONS */}
         <Box display="flex" gap={1} mb={4} flexWrap="wrap">
-          {["all", "pending", "in-progress", "completed"].map(s => (
+          {["all", "pending", "in-progress", "completed"].map((s) => (
             <Button
               key={s}
               variant={filter === s ? "contained" : "outlined"}
@@ -185,19 +236,7 @@ export default function Dashboard() {
           ))}
         </Box>
 
-      
-        {filteredWorkflows.length === 0 && (
-          <Box textAlign="center" py={8} color="text.secondary">
-            <Typography variant="h5" fontWeight={700}>
-              🎉 You’re all caught up!
-            </Typography>
-            <Typography mt={1}>
-              No {filter === "all" ? "" : filter.replace("-", " ")} tasks right now.
-            </Typography>
-          </Box>
-        )}
-
-       
+        {/* WORKFLOWS */}
         {filteredWorkflows.map((wf, i) => {
           const progress = getProgress(wf.tasks);
           const color = getProgressColor(progress);
@@ -205,12 +244,9 @@ export default function Dashboard() {
           return (
             <Card key={i} sx={{ mb: 4, borderRadius: 4 }}>
               <CardContent>
-
-                
                 <Box display="flex" justifyContent="space-between" mb={2}>
                   <Typography fontWeight={800}>{wf.title}</Typography>
 
-                 
                   <Box
                     position="relative"
                     width={54}
@@ -241,8 +277,7 @@ export default function Dashboard() {
 
                 <Divider sx={{ mb: 2 }} />
 
-               
-                {wf.tasks.map(task => {
+                {wf.tasks.map((task) => {
                   const blocked = isBlocked(task, wf.tasks);
                   const c = STATUS_COLORS[task.status];
 
@@ -281,7 +316,11 @@ export default function Dashboard() {
         })}
       </Box>
 
-      <Snackbar open={!!error} autoHideDuration={3000} onClose={() => setError("")}>
+      <Snackbar
+        open={!!error}
+        autoHideDuration={3000}
+        onClose={() => setError("")}
+      >
         <Alert severity="warning">{error}</Alert>
       </Snackbar>
     </Box>

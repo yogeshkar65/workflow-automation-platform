@@ -11,6 +11,7 @@ import {
   Chip,
   Button,
   CircularProgress,
+  Skeleton,
 } from "@mui/material";
 import {
   WorkOutline,
@@ -38,93 +39,163 @@ const PAGE_SIZE = 3;
 export default function AdminDashboard() {
   const [workflows, setWorkflows] = useState([]);
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   /* ===== FETCH ===== */
   useEffect(() => {
-    api.get("/workflows")
-      .then(res => setWorkflows(res.data || []))
-      .catch(() => setWorkflows([]));
+    api
+      .get("/workflows")
+      .then((res) => setWorkflows(res.data || []))
+      .catch(() => setWorkflows([]))
+      .finally(() => setLoading(false));
   }, []);
+
+  /* ================= SKELETON LOADING ================= */
+  if (loading) {
+    return (
+      <Box sx={{ px: 4, pt: 1, pb: 4, background: "#f9fbfd", minHeight: "100vh" }}>
+        <Skeleton width="30%" height={36} />
+        <Skeleton width="40%" height={20} sx={{ mb: 4 }} />
+
+        {/* KPI CARDS */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2,1fr)",
+              md: "repeat(5,1fr)",
+            },
+            gap: 2.5,
+            mb: 5,
+          }}
+        >
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Card
+              key={i}
+              elevation={0}
+              sx={{
+                border: `1px solid ${COLORS.lightBorder}`,
+                borderRadius: 3,
+              }}
+            >
+              <CardContent>
+                <Skeleton variant="circular" width={24} height={24} />
+                <Skeleton height={36} width="50%" sx={{ mt: 1 }} />
+                <Skeleton height={18} width="70%" />
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+
+        {/* RECENT WORKFLOWS */}
+        <Card elevation={0} sx={{ border: `1px solid ${COLORS.lightBorder}`, borderRadius: 4 }}>
+          <CardContent>
+            <Skeleton width="30%" height={28} sx={{ mb: 3 }} />
+            {[1, 2, 3].map((i) => (
+              <Box key={i}>
+                <ListItem>
+                  <ListItemText
+                    primary={<Skeleton width="40%" />}
+                    secondary={<Skeleton width="30%" />}
+                  />
+                  <Skeleton width={70} height={28} />
+                </ListItem>
+                {i < 3 && <Divider />}
+              </Box>
+            ))}
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
 
   /* ===== CALCULATIONS ===== */
   const totalWorkflows = workflows.length;
 
   const completedWorkflows = workflows.filter(
-    w => w.tasks?.length > 0 && w.tasks.every(t => t.status === "completed")
+    (w) => w.tasks?.length > 0 && w.tasks.every((t) => t.status === "completed")
   ).length;
 
   const inProgressWorkflows = workflows.filter(
-    w => w.tasks?.some(t => t.status === "in-progress")
+    (w) => w.tasks?.some((t) => t.status === "in-progress")
   ).length;
 
-  const notStartedWorkflows = workflows.filter(w => {
+  const notStartedWorkflows = workflows.filter((w) => {
     if (!w.tasks || w.tasks.length === 0) return true;
-    return w.tasks.every(t => t.status === "pending");
+    return w.tasks.every((t) => t.status === "pending");
   }).length;
 
   const pendingTasks = workflows.reduce(
     (sum, w) =>
-      sum + (w.tasks?.filter(t => t.status === "pending").length || 0),
+      sum + (w.tasks?.filter((t) => t.status === "pending").length || 0),
     0
   );
 
-  const stats = useMemo(() => ([
-    {
-      label: "Total Workflows",
-      value: totalWorkflows,
-      color: COLORS.blue,
-      icon: <WorkOutline />,
-      route: "/admin/workflows",
-      percent: 100,
-    },
-    {
-      label: "In Progress",
-      value: inProgressWorkflows,
-      color: COLORS.yellow,
-      icon: <PendingActions />,
-      route: "/admin/workflows?status=in-progress",
-      percent: totalWorkflows ? (inProgressWorkflows / totalWorkflows) * 100 : 0,
-    },
-    {
-      label: "Completed",
-      value: completedWorkflows,
-      color: COLORS.green,
-      icon: <AssignmentTurnedIn />,
-      route: "/admin/workflows?status=completed",
-      percent: totalWorkflows ? (completedWorkflows / totalWorkflows) * 100 : 0,
-    },
-    {
-      label: "Not Started",
-      value: notStartedWorkflows,
-      color: COLORS.grey,
-      icon: <HourglassEmpty />,
-      route: "/admin/workflows?status=not-started",
-      percent: totalWorkflows ? (notStartedWorkflows / totalWorkflows) * 100 : 0,
-    },
-    {
-      label: "Pending Tasks",
-      value: pendingTasks,
-      color: COLORS.red,
-      icon: <PlaylistAddCheck />,
-      route: "/admin/tasks?status=pending",
-      percent: pendingTasks ? 100 : 0,
-    },
-  ]), [
-    totalWorkflows,
-    inProgressWorkflows,
-    completedWorkflows,
-    notStartedWorkflows,
-    pendingTasks,
-  ]);
+  const stats = useMemo(
+    () => [
+      {
+        label: "Total Workflows",
+        value: totalWorkflows,
+        color: COLORS.blue,
+        icon: <WorkOutline />,
+        route: "/admin/workflows",
+        percent: 100,
+      },
+      {
+        label: "In Progress",
+        value: inProgressWorkflows,
+        color: COLORS.yellow,
+        icon: <PendingActions />,
+        route: "/admin/workflows?status=in-progress",
+        percent: totalWorkflows
+          ? (inProgressWorkflows / totalWorkflows) * 100
+          : 0,
+      },
+      {
+        label: "Completed",
+        value: completedWorkflows,
+        color: COLORS.green,
+        icon: <AssignmentTurnedIn />,
+        route: "/admin/workflows?status=completed",
+        percent: totalWorkflows
+          ? (completedWorkflows / totalWorkflows) * 100
+          : 0,
+      },
+      {
+        label: "Not Started",
+        value: notStartedWorkflows,
+        color: COLORS.grey,
+        icon: <HourglassEmpty />,
+        route: "/admin/workflows?status=not-started",
+        percent: totalWorkflows
+          ? (notStartedWorkflows / totalWorkflows) * 100
+          : 0,
+      },
+      {
+        label: "Pending Tasks",
+        value: pendingTasks,
+        color: COLORS.red,
+        icon: <PlaylistAddCheck />,
+        route: "/admin/tasks?status=pending",
+        percent: pendingTasks ? 100 : 0,
+      },
+    ],
+    [
+      totalWorkflows,
+      inProgressWorkflows,
+      completedWorkflows,
+      notStartedWorkflows,
+      pendingTasks,
+    ]
+  );
 
   /* ===== PAGINATION ===== */
   const totalPages = Math.ceil(workflows.length / PAGE_SIZE);
-  const paginated = workflows.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
-  );
+  const paginated = workflows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  /* ================= DATA UI ================= */
   return (
     <Box sx={{ px: 4, pt: 1, pb: 4, background: "#f9fbfd", minHeight: "100vh" }}>
       <Typography variant="h4" fontWeight={800} color={COLORS.blue}>
@@ -134,16 +205,20 @@ export default function AdminDashboard() {
         Overview of workflows and tasks
       </Typography>
 
-      {/* ===== KPI CARDS WITH DONUT ===== */}
+      {/* KPI CARDS */}
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(5,1fr)" },
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2,1fr)",
+            md: "repeat(5,1fr)",
+          },
           gap: 2.5,
           mb: 5,
         }}
       >
-        {stats.map(stat => (
+        {stats.map((stat) => (
           <Card
             key={stat.label}
             elevation={0}
@@ -159,10 +234,8 @@ export default function AdminDashboard() {
             }}
           >
             <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Box display="flex" justifyContent="space-between">
                 <Box sx={{ color: stat.color }}>{stat.icon}</Box>
-
-                {/* DONUT */}
                 <Box position="relative">
                   <CircularProgress
                     variant="determinate"
@@ -185,10 +258,19 @@ export default function AdminDashboard() {
                 </Box>
               </Box>
 
-              <Typography variant="h4" fontWeight={800} color={stat.color} mt={1}>
+              <Typography
+                variant="h4"
+                fontWeight={800}
+                color={stat.color}
+                mt={1}
+              >
                 {stat.value}
               </Typography>
-              <Typography variant="caption" fontWeight={700} color={stat.color}>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                color={stat.color}
+              >
                 {stat.label}
               </Typography>
             </CardContent>
@@ -196,7 +278,7 @@ export default function AdminDashboard() {
         ))}
       </Box>
 
-      {/* ===== RECENT WORKFLOWS ===== */}
+      {/* RECENT WORKFLOWS */}
       <Card elevation={0} sx={{ border: `1px solid ${COLORS.lightBorder}`, borderRadius: 4 }}>
         <CardContent>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
@@ -215,13 +297,17 @@ export default function AdminDashboard() {
           <List disablePadding>
             {paginated.map((w, i) => {
               let status = "pending";
-              if (w.tasks?.some(t => t.status === "in-progress")) status = "in-progress";
-              if (w.tasks?.length && w.tasks.every(t => t.status === "completed")) status = "completed";
+              if (w.tasks?.some((t) => t.status === "in-progress"))
+                status = "in-progress";
+              if (w.tasks?.length && w.tasks.every((t) => t.status === "completed"))
+                status = "completed";
 
               const chipColor =
-                status === "completed" ? COLORS.green :
-                status === "in-progress" ? COLORS.yellow :
-                COLORS.red;
+                status === "completed"
+                  ? COLORS.green
+                  : status === "in-progress"
+                  ? COLORS.yellow
+                  : COLORS.red;
 
               return (
                 <Box key={w._id}>
@@ -247,9 +333,18 @@ export default function AdminDashboard() {
 
           {totalPages > 1 && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
-              <Button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Prev</Button>
-              <Typography sx={{ mx: 2 }}>{page} / {totalPages}</Typography>
-              <Button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+              <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+                Prev
+              </Button>
+              <Typography sx={{ mx: 2 }}>
+                {page} / {totalPages}
+              </Typography>
+              <Button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </Button>
             </Box>
           )}
         </CardContent>
