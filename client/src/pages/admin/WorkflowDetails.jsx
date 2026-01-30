@@ -24,7 +24,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../../services/api";
 
-/* ===== STATUS FLOW (CYCLE) ===== */
+/* ===== STATUS FLOW ===== */
 const STATUS_ORDER = ["pending", "in-progress", "completed"];
 
 /* ===== STATUS COLORS ===== */
@@ -48,11 +48,8 @@ export default function WorkflowDetails() {
   const [workflow, setWorkflow] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  /* ===== CENTER ACTION STATE ===== */
   const [actionText, setActionText] = useState(null);
 
-  /* ===== DIALOG STATE ===== */
   const [deleteTaskId, setDeleteTaskId] = useState(null);
   const [confirmWorkflowDelete, setConfirmWorkflowDelete] = useState(false);
 
@@ -82,7 +79,7 @@ export default function WorkflowDetails() {
       const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
       await api.put(`/tasks/${task._id}/status`, { status: next });
       await loadWorkflow();
-      toast.success("Status updated");
+      toast.success(`Moved to ${next.replace("-", " ")}`);
     } catch {
       toast.error("Failed to update status");
     } finally {
@@ -104,7 +101,7 @@ export default function WorkflowDetails() {
     }
   };
 
-  /* ===== CONFIRM DELETE TASK ===== */
+  /* ===== DELETE TASK ===== */
   const confirmDeleteTask = async () => {
     try {
       setActionText("Deleting task...");
@@ -119,7 +116,7 @@ export default function WorkflowDetails() {
     }
   };
 
-  /* ===== CONFIRM DELETE WORKFLOW ===== */
+  /* ===== DELETE WORKFLOW ===== */
   const confirmDeleteWorkflow = async () => {
     try {
       setActionText("Deleting workflow...");
@@ -134,15 +131,15 @@ export default function WorkflowDetails() {
     }
   };
 
-  /* ===== PAGE LOADING ===== */
+  /* ===== LOADING ===== */
   if (loading) {
     return (
-      <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
-        <Skeleton width={160} height={40} />
-        <Skeleton width="60%" height={24} sx={{ my: 2 }} />
+      <Box sx={{ width: "100%", px: 3, py: 3 }}>
+        <Skeleton width={200} height={40} />
+        <Skeleton width="40%" height={24} sx={{ my: 2 }} />
         <Box display="flex" gap={4} mt={4}>
           <Skeleton variant="circular" width={120} height={120} />
-          <Skeleton width="40%" height={30} />
+          <Skeleton width="30%" height={30} />
         </Box>
       </Box>
     );
@@ -160,11 +157,8 @@ export default function WorkflowDetails() {
 
   return (
     <>
-      {/* ===== CENTER LOADER ===== */}
-      <Backdrop
-        open={!!actionText}
-        sx={{ zIndex: 2000, backgroundColor: "rgba(255,255,255,0.6)" }}
-      >
+      {/* ===== CENTER ACTION LOADER ===== */}
+      <Backdrop open={!!actionText} sx={{ zIndex: 2000, background: "rgba(255,255,255,0.6)" }}>
         <Box textAlign="center">
           <CircularProgress sx={{ color: "#1976d2" }} />
           <Typography mt={2} fontWeight={700} color="#1976d2">
@@ -183,17 +177,12 @@ export default function WorkflowDetails() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteTaskId(null)}>Cancel</Button>
-          <Button color="error" onClick={confirmDeleteTask}>
-            Delete
-          </Button>
+          <Button color="error" onClick={confirmDeleteTask}>Delete</Button>
         </DialogActions>
       </Dialog>
 
       {/* ===== DELETE WORKFLOW DIALOG ===== */}
-      <Dialog
-        open={confirmWorkflowDelete}
-        onClose={() => setConfirmWorkflowDelete(false)}
-      >
+      <Dialog open={confirmWorkflowDelete} onClose={() => setConfirmWorkflowDelete(false)}>
         <DialogTitle>Delete Workflow</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -201,26 +190,24 @@ export default function WorkflowDetails() {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmWorkflowDelete(false)}>
-            Cancel
-          </Button>
-          <Button color="error" onClick={confirmDeleteWorkflow}>
-            Delete
-          </Button>
+          <Button onClick={() => setConfirmWorkflowDelete(false)}>Cancel</Button>
+          <Button color="error" onClick={confirmDeleteWorkflow}>Delete</Button>
         </DialogActions>
       </Dialog>
 
-      {/* ===== MAIN UI ===== */}
-      <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
-        <IconButton onClick={() => navigate("/admin/workflows")}>
-          <ArrowBackIcon />
-        </IconButton>
+      {/* ===== MAIN CONTENT ===== */}
+      <Box sx={{ width: "100%", px: 3, py: 2 }}>
+        {/* Header */}
+        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <IconButton onClick={() => navigate("/admin/workflows")}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h4" fontWeight={800}>
+              {workflow.title}
+            </Typography>
+          </Box>
 
-        <Typography variant="h4" fontWeight={800} mb={1}>
-          {workflow.title}
-        </Typography>
-
-        <Box textAlign="right" mb={2}>
           <Button
             variant="outlined"
             color="error"
@@ -235,51 +222,31 @@ export default function WorkflowDetails() {
           {workflow.description}
         </Typography>
 
+        {/* Progress */}
         <Box display="flex" alignItems="center" gap={4} mb={4}>
           <Box sx={{ position: "relative", width: 120, height: 120 }}>
-            <CircularProgress
-              variant="determinate"
-              value={100}
-              size={120}
-              sx={{ color: "#e0e0e0", position: "absolute" }}
-            />
-            <CircularProgress
-              variant="determinate"
-              value={progress}
-              size={120}
-              sx={{ color: "#1976d2", position: "absolute" }}
-            />
-            <Typography
-              sx={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 800,
-              }}
-            >
+            <CircularProgress variant="determinate" value={100} size={120} sx={{ color: "#e0e0e0", position: "absolute" }} />
+            <CircularProgress variant="determinate" value={progress} size={120} sx={{ color: "#1976d2", position: "absolute" }} />
+            <Typography sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>
               {progress}%
             </Typography>
           </Box>
 
           <Typography fontWeight={700}>
-            {workflow.tasks.filter(t => t.status === "completed").length} /{" "}
-            {workflow.tasks.length} tasks completed
+            {workflow.tasks.filter(t => t.status === "completed").length} / {workflow.tasks.length} tasks completed
           </Typography>
         </Box>
 
         <Button
           variant="contained"
-          onClick={() =>
-            navigate(`/admin/workflows/${workflowId}/createTask`)
-          }
+          onClick={() => navigate(`/admin/workflows/${workflowId}/createTask`)}
         >
           + Add Task
         </Button>
 
         <Divider sx={{ my: 3 }} />
 
+        {/* Tasks */}
         {workflow.tasks.map((task, index) => {
           const c = STATUS_COLORS[task.status];
           return (
@@ -293,7 +260,6 @@ export default function WorkflowDetails() {
                 p: 2,
                 border: "1px solid #e0e0e0",
                 borderRadius: 2,
-                "&:hover": { background: "#fafafa" },
               }}
             >
               <Typography sx={{ flex: 2 }} fontWeight={600}>
@@ -304,9 +270,7 @@ export default function WorkflowDetails() {
                 size="small"
                 sx={{ flex: 2 }}
                 value={task.assignedTo?._id || ""}
-                onChange={(e) =>
-                  assignUser(task._id, e.target.value || null)
-                }
+                onChange={(e) => assignUser(task._id, e.target.value || null)}
               >
                 <MenuItem value="">
                   <em>Unassigned</em>
@@ -330,10 +294,7 @@ export default function WorkflowDetails() {
                 }}
               />
 
-              <IconButton
-                color="error"
-                onClick={() => setDeleteTaskId(task._id)}
-              >
+              <IconButton color="error" onClick={() => setDeleteTaskId(task._id)}>
                 <DeleteIcon />
               </IconButton>
             </Box>
