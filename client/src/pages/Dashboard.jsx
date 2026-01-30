@@ -31,8 +31,8 @@ const getProgress = (tasks = []) => {
 
 const getProgressColor = (v) => {
   if (v <= 30) return "#d32f2f";
-  if (v <= 50) return "#e29f33ff";
-  if (v <= 80) return "#4262e1ff";
+  if (v <= 50) return "#e29f33";
+  if (v <= 80) return "#4262e1";
   if (v < 90) return "#81c784";
   return "#2e7d32";
 };
@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
 
+  /* ===== FETCH TASKS ===== */
   useEffect(() => {
     api
       .get("/tasks")
@@ -57,7 +58,68 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  /* ================= SKELETON LOADING ================= */
+  /* =====================================================
+     ALL DERIVED LOGIC & HOOKS — MUST BE ABOVE RETURNS
+     ===================================================== */
+
+  const total = tasks.length;
+  const pending = tasks.filter((t) => t.status === "pending").length;
+  const inProgress = tasks.filter((t) => t.status === "in-progress").length;
+  const completed = tasks.filter((t) => t.status === "completed").length;
+
+  const workflows = useMemo(() => {
+    if (!tasks.length) return [];
+
+    const map = {};
+    tasks.forEach((task) => {
+      if (!task.workflow) return;
+
+      const wfId = task.workflow._id;
+      if (!map[wfId]) {
+        map[wfId] = {
+          title: task.workflow.title,
+          tasks: [],
+        };
+      }
+      map[wfId].tasks.push(task);
+      map[wfId].tasks.sort((a, b) => a.order - b.order);
+    });
+
+    return Object.values(map);
+  }, [tasks]);
+
+  const filteredWorkflows = workflows
+    .map((w) => ({
+      ...w,
+      tasks:
+        filter === "all"
+          ? w.tasks
+          : w.tasks.filter((t) => t.status === filter),
+    }))
+    .filter((w) => w.tasks.length > 0);
+
+  const advanceStatus = async (task, wfTasks) => {
+    if (isBlocked(task, wfTasks)) {
+      setError("Previous task must be completed first");
+      return;
+    }
+
+    const idx = STATUS_ORDER.indexOf(task.status);
+    const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
+
+    try {
+      await api.put(`/tasks/${task._id}/status`, { status: next });
+      setTasks((prev) =>
+        prev.map((t) =>
+          t._id === task._id ? { ...t, status: next } : t
+        )
+      );
+    } catch {
+      setError("Status update failed");
+    }
+  };
+
+  /* ================= SKELETON UI ================= */
   if (loading) {
     return (
       <Box sx={{ background: "#f6f8fb", minHeight: "100vh", py: 4 }}>
@@ -65,7 +127,6 @@ export default function Dashboard() {
           <Skeleton width="40%" height={40} />
           <Skeleton width="60%" height={20} sx={{ mb: 4 }} />
 
-          {/* STAT CARDS */}
           <Box
             display="grid"
             gridTemplateColumns={{
@@ -85,80 +146,12 @@ export default function Dashboard() {
               </Card>
             ))}
           </Box>
-
-          {/* WORKFLOW CARDS */}
-          {[1, 2].map((i) => (
-            <Card key={i} sx={{ mb: 4, borderRadius: 4 }}>
-              <CardContent>
-                <Skeleton width="40%" height={24} />
-                <Divider sx={{ my: 2 }} />
-
-                {[1, 2, 3].map((j) => (
-                  <Skeleton key={j} height={28} sx={{ mb: 1 }} />
-                ))}
-              </CardContent>
-            </Card>
-          ))}
         </Box>
       </Box>
     );
   }
 
-  /* ================= DATA LOGIC ================= */
-  const total = tasks.length;
-  const pending = tasks.filter((t) => t.status === "pending").length;
-  const inProgress = tasks.filter((t) => t.status === "in-progress").length;
-  const completed = tasks.filter((t) => t.status === "completed").length;
-
-  const workflows = useMemo(() => {
-    const map = {};
-    tasks.forEach((task) => {
-      const wfId = task.workflow._id;
-      if (!map[wfId]) {
-        map[wfId] = {
-          title: task.workflow.title,
-          tasks: [],
-        };
-      }
-      map[wfId].tasks.push(task);
-      map[wfId].tasks.sort((a, b) => a.order - b.order);
-    });
-    return Object.values(map);
-  }, [tasks]);
-
-  const filteredWorkflows = workflows
-    .map((w) => ({
-      ...w,
-      tasks:
-        filter === "all"
-          ? w.tasks
-          : w.tasks.filter((t) => t.status === filter),
-    }))
-    .filter((w) => w.tasks.length);
-
-  const advanceStatus = async (task, wfTasks) => {
-    if (isBlocked(task, wfTasks)) {
-      setError("Previous task must be completed first");
-      return;
-    }
-
-    const idx = STATUS_ORDER.indexOf(task.status);
-    const next = STATUS_ORDER[idx + 1];
-    if (!next) return;
-
-    try {
-      await api.put(`/tasks/${task._id}/status`, { status: next });
-      setTasks((prev) =>
-        prev.map((t) =>
-          t._id === task._id ? { ...t, status: next } : t
-        )
-      );
-    } catch (err) {
-      setError("Status update failed");
-    }
-  };
-
-  /* ================= UI ================= */
+  /* ================= MAIN UI ================= */
   return (
     <Box sx={{ background: "#f6f8fb", minHeight: "100vh", py: 4 }}>
       <Box sx={{ maxWidth: 1100, mx: "auto", px: 2 }}>
@@ -202,15 +195,6 @@ export default function Dashboard() {
               sx={{
                 cursor: "pointer",
                 borderLeft: `6px solid ${k.color}`,
-                border:
-                  filter === k.key
-                    ? `2px solid ${k.color}`
-                    : "2px solid transparent",
-                transition: "0.3s",
-                "&:hover": {
-                  transform: "translateY(-4px)",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-                },
               }}
             >
               <CardContent>
@@ -223,20 +207,13 @@ export default function Dashboard() {
           ))}
         </Box>
 
-        {/* FILTER BUTTONS */}
-        <Box display="flex" gap={1} mb={4} flexWrap="wrap">
-          {["all", "pending", "in-progress", "completed"].map((s) => (
-            <Button
-              key={s}
-              variant={filter === s ? "contained" : "outlined"}
-              onClick={() => setFilter(s)}
-            >
-              {s.replace("-", " ")}
-            </Button>
-          ))}
-        </Box>
-
         {/* WORKFLOWS */}
+        {filteredWorkflows.length === 0 && (
+          <Typography color="text.secondary" mt={6} textAlign="center">
+            No tasks available
+          </Typography>
+        )}
+
         {filteredWorkflows.map((wf, i) => {
           const progress = getProgress(wf.tasks);
           const color = getProgressColor(progress);
@@ -247,32 +224,13 @@ export default function Dashboard() {
                 <Box display="flex" justifyContent="space-between" mb={2}>
                   <Typography fontWeight={800}>{wf.title}</Typography>
 
-                  <Box
-                    position="relative"
-                    width={54}
-                    height={54}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <CircularProgress
-                      variant="determinate"
-                      value={100}
-                      size={54}
-                      thickness={6}
-                      sx={{ color: "#e0e0e0", position: "absolute" }}
-                    />
-                    <CircularProgress
-                      variant="determinate"
-                      value={progress}
-                      size={54}
-                      thickness={6}
-                      sx={{ color, position: "absolute" }}
-                    />
-                    <Typography fontSize={12} fontWeight={700} color={color}>
-                      {progress}%
-                    </Typography>
-                  </Box>
+                  <CircularProgress
+                    variant="determinate"
+                    value={progress}
+                    size={54}
+                    thickness={6}
+                    sx={{ color }}
+                  />
                 </Box>
 
                 <Divider sx={{ mb: 2 }} />
@@ -289,9 +247,7 @@ export default function Dashboard() {
                       mb={2}
                       sx={{ opacity: blocked ? 0.5 : 1 }}
                     >
-                      <Typography fontWeight={600}>
-                        {task.title}
-                      </Typography>
+                      <Typography fontWeight={600}>{task.title}</Typography>
 
                       {blocked ? (
                         <Chip label="Blocked" />
