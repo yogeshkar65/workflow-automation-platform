@@ -37,10 +37,11 @@ const COLORS = {
 const PAGE_SIZE = 3;
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+
   const [workflows, setWorkflows] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   /* ===== FETCH ===== */
   useEffect(() => {
@@ -51,67 +52,7 @@ export default function AdminDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  /* ================= SKELETON LOADING ================= */
-  if (loading) {
-    return (
-      <Box sx={{ px: 4, pt: 1, pb: 4, background: "#f9fbfd", minHeight: "100vh" }}>
-        <Skeleton width="30%" height={36} />
-        <Skeleton width="40%" height={20} sx={{ mb: 4 }} />
-
-        {/* KPI CARDS */}
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2,1fr)",
-              md: "repeat(5,1fr)",
-            },
-            gap: 2.5,
-            mb: 5,
-          }}
-        >
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Card
-              key={i}
-              elevation={0}
-              sx={{
-                border: `1px solid ${COLORS.lightBorder}`,
-                borderRadius: 3,
-              }}
-            >
-              <CardContent>
-                <Skeleton variant="circular" width={24} height={24} />
-                <Skeleton height={36} width="50%" sx={{ mt: 1 }} />
-                <Skeleton height={18} width="70%" />
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-
-        {/* RECENT WORKFLOWS */}
-        <Card elevation={0} sx={{ border: `1px solid ${COLORS.lightBorder}`, borderRadius: 4 }}>
-          <CardContent>
-            <Skeleton width="30%" height={28} sx={{ mb: 3 }} />
-            {[1, 2, 3].map((i) => (
-              <Box key={i}>
-                <ListItem>
-                  <ListItemText
-                    primary={<Skeleton width="40%" />}
-                    secondary={<Skeleton width="30%" />}
-                  />
-                  <Skeleton width={70} height={28} />
-                </ListItem>
-                {i < 3 && <Divider />}
-              </Box>
-            ))}
-          </CardContent>
-        </Card>
-      </Box>
-    );
-  }
-
-  /* ===== CALCULATIONS ===== */
+  /* ===== CALCULATIONS (ALWAYS EXECUTED) ===== */
   const totalWorkflows = workflows.length;
 
   const completedWorkflows = workflows.filter(
@@ -191,9 +132,50 @@ export default function AdminDashboard() {
     ]
   );
 
-  /* ===== PAGINATION ===== */
   const totalPages = Math.ceil(workflows.length / PAGE_SIZE);
   const paginated = workflows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  /* ================= SKELETON UI ================= */
+  if (loading) {
+    return (
+      <Box sx={{ px: 4, py: 4, background: "#f9fbfd", minHeight: "100vh" }}>
+        <Skeleton width="30%" height={36} />
+        <Skeleton width="40%" height={20} sx={{ mb: 4 }} />
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2,1fr)",
+              md: "repeat(5,1fr)",
+            },
+            gap: 2.5,
+            mb: 5,
+          }}
+        >
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Card key={i} elevation={0} sx={{ borderRadius: 3 }}>
+              <CardContent>
+                <Skeleton variant="circular" width={24} height={24} />
+                <Skeleton height={36} width="50%" sx={{ mt: 1 }} />
+                <Skeleton height={18} width="70%" />
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+
+        <Card elevation={0} sx={{ borderRadius: 4 }}>
+          <CardContent>
+            <Skeleton width="30%" height={28} sx={{ mb: 3 }} />
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} height={56} sx={{ mb: 1 }} />
+            ))}
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
 
   /* ================= DATA UI ================= */
   return (
@@ -205,7 +187,6 @@ export default function AdminDashboard() {
         Overview of workflows and tasks
       </Typography>
 
-      {/* KPI CARDS */}
       <Box
         sx={{
           display: "grid",
@@ -236,41 +217,19 @@ export default function AdminDashboard() {
             <CardContent>
               <Box display="flex" justifyContent="space-between">
                 <Box sx={{ color: stat.color }}>{stat.icon}</Box>
-                <Box position="relative">
-                  <CircularProgress
-                    variant="determinate"
-                    value={100}
-                    size={44}
-                    thickness={5}
-                    sx={{ color: "#e0e0e0" }}
-                  />
-                  <CircularProgress
-                    variant="determinate"
-                    value={stat.percent}
-                    size={44}
-                    thickness={5}
-                    sx={{
-                      color: stat.color,
-                      position: "absolute",
-                      left: 0,
-                    }}
-                  />
-                </Box>
+                <CircularProgress
+                  variant="determinate"
+                  value={stat.percent}
+                  size={44}
+                  thickness={5}
+                  sx={{ color: stat.color }}
+                />
               </Box>
 
-              <Typography
-                variant="h4"
-                fontWeight={800}
-                color={stat.color}
-                mt={1}
-              >
+              <Typography variant="h4" fontWeight={800} color={stat.color} mt={1}>
                 {stat.value}
               </Typography>
-              <Typography
-                variant="caption"
-                fontWeight={700}
-                color={stat.color}
-              >
+              <Typography variant="caption" fontWeight={700} color={stat.color}>
                 {stat.label}
               </Typography>
             </CardContent>
@@ -278,8 +237,7 @@ export default function AdminDashboard() {
         ))}
       </Box>
 
-      {/* RECENT WORKFLOWS */}
-      <Card elevation={0} sx={{ border: `1px solid ${COLORS.lightBorder}`, borderRadius: 4 }}>
+      <Card elevation={0} sx={{ borderRadius: 4 }}>
         <CardContent>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
             <Typography variant="h6" fontWeight={800}>
@@ -330,23 +288,6 @@ export default function AdminDashboard() {
               );
             })}
           </List>
-
-          {totalPages > 1 && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
-              <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                Prev
-              </Button>
-              <Typography sx={{ mx: 2 }}>
-                {page} / {totalPages}
-              </Typography>
-              <Button
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </Button>
-            </Box>
-          )}
         </CardContent>
       </Card>
     </Box>

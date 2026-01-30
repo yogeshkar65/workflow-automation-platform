@@ -11,10 +11,12 @@ import {
   CircularProgress,
   Skeleton,
   Alert,
+  Backdrop,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import api from "../../services/api";
 
 /* ===== STATUS FLOW ===== */
@@ -48,8 +50,8 @@ export default function WorkflowDetails() {
 
   const [workflow, setWorkflow] = useState(null);
   const [users, setUsers] = useState([]);
-
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
 
   /* ===== LOAD WORKFLOW ===== */
@@ -58,7 +60,7 @@ export default function WorkflowDetails() {
       setLoading(true);
       const res = await api.get(`/workflows/${workflowId}`);
       setWorkflow(res.data);
-    } catch (err) {
+    } catch {
       setError("Failed to load workflow");
     } finally {
       setLoading(false);
@@ -70,27 +72,78 @@ export default function WorkflowDetails() {
     api.get("/users").then((res) => setUsers(res.data || []));
   }, [workflowId]);
 
-  /* ================== LOADING SKELETON ================== */
+  /* ===== TASK ACTIONS ===== */
+  const advanceStatus = async (task) => {
+    try {
+      setActionLoading(true);
+      const idx = STATUS_ORDER.indexOf(task.status);
+      const next = STATUS_ORDER[idx + 1];
+      if (!next) return;
+
+      await api.put(`/tasks/${task._id}/status`, { status: next });
+      await loadWorkflow();
+    } catch {
+      toast.error("Failed to update task status");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const assignUser = async (taskId, userId) => {
+    try {
+      setActionLoading(true);
+      await api.put(`/tasks/${taskId}/assign`, { userId: userId || null });
+      await loadWorkflow();
+    } catch {
+      toast.error("Failed to assign user");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    try {
+      setActionLoading(true);
+      toast.info("Deleting task...");
+      await api.delete(`/tasks/${taskId}`);
+      await loadWorkflow();
+      toast.success("Task deleted successfully");
+    } catch {
+      toast.error("Failed to delete task");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const deleteWorkflow = async () => {
+    try {
+      setActionLoading(true);
+      toast.info("Deleting workflow...");
+      await api.delete(`/workflows/${workflowId}`);
+      toast.success("Workflow deleted successfully");
+      navigate("/admin/workflows");
+    } catch {
+      toast.error("Failed to delete workflow");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  /* ================== LOADING ================== */
   if (loading) {
     return (
       <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
-        <Skeleton width={120} height={40} sx={{ mb: 2 }} />
-        <Skeleton width="50%" height={42} />
-        <Skeleton width="70%" height={20} sx={{ mb: 4 }} />
-
-        <Box display="flex" gap={4} mb={4}>
+        <Skeleton width={120} height={40} />
+        <Skeleton width="50%" height={42} sx={{ my: 2 }} />
+        <Skeleton width="70%" height={20} />
+        <Box display="flex" gap={4} mt={4}>
           <Skeleton variant="circular" width={120} height={120} />
           <Skeleton width="40%" height={30} />
         </Box>
-
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} height={70} sx={{ mb: 2 }} />
-        ))}
       </Box>
     );
   }
 
-  /* ================== ERROR ================== */
   if (error) {
     return (
       <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
@@ -99,126 +152,89 @@ export default function WorkflowDetails() {
     );
   }
 
-  if (!workflow) {
-    return (
-      <Box p={3}>
-        <Typography>No workflow found</Typography>
-      </Box>
-    );
-  }
-
-  /* ===== TASK ACTIONS ===== */
-  const advanceStatus = async (task) => {
-    const idx = STATUS_ORDER.indexOf(task.status);
-    const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
-    await api.put(`/tasks/${task._id}/status`, { status: next });
-    loadWorkflow();
-  };
-
-  const assignUser = async (taskId, userId) => {
-    await api.put(`/tasks/${taskId}/assign`, { userId: userId || null });
-    loadWorkflow();
-  };
-
-  const deleteTask = async (taskId) => {
-    if (!window.confirm("Delete this task?")) return;
-    await api.delete(`/tasks/${taskId}`);
-    loadWorkflow();
-  };
-
-  const deleteWorkflow = async () => {
-    if (!window.confirm("Delete this workflow? This cannot be undone.")) return;
-    await api.delete(`/workflows/${workflowId}`);
-    navigate("/admin/workflows");
-  };
-
   const progress = getProgress(workflow.tasks);
   const progressColor = getProgressColor(progress);
 
-  /* ================== DATA ================== */
   return (
-    <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
-      {/* BACK */}
-      <IconButton onClick={() => navigate("/admin/workflows")}>
-        <ArrowBackIcon />
-      </IconButton>
+    <>
+      {/* GLOBAL ACTION LOADER */}
+      <Backdrop open={actionLoading} sx={{ zIndex: 2000 }}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
 
-      {/* TITLE */}
-      <Typography variant="h4" fontWeight={800} mb={1}>
-        {workflow.title}
-      </Typography>
+      <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
+        <IconButton onClick={() => navigate("/admin/workflows")}>
+          <ArrowBackIcon />
+        </IconButton>
 
-      {/* DELETE WORKFLOW */}
-      <Box textAlign="right" mb={2}>
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<DeleteIcon />}
-          onClick={deleteWorkflow}
-          sx={{ textTransform: "none", fontWeight: 600 }}
-        >
-          Delete Workflow
-        </Button>
-      </Box>
+        <Typography variant="h4" fontWeight={800} mb={1}>
+          {workflow.title}
+        </Typography>
 
-      <Typography color="text.secondary" mb={3}>
-        {workflow.description}
-      </Typography>
-
-      {/* PROGRESS */}
-      <Box display="flex" alignItems="center" gap={4} mb={4}>
-        <Box sx={{ position: "relative", width: 120, height: 120 }}>
-          <CircularProgress
-            variant="determinate"
-            value={100}
-            size={120}
-            sx={{ color: "#e0e0e0", position: "absolute" }}
-          />
-          <CircularProgress
-            variant="determinate"
-            value={progress}
-            size={120}
-            sx={{ color: progressColor, position: "absolute" }}
-          />
-          <Typography
-            sx={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 800,
-            }}
+        <Box textAlign="right" mb={2}>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            disabled={actionLoading}
+            onClick={deleteWorkflow}
           >
-            {progress}%
+            Delete Workflow
+          </Button>
+        </Box>
+
+        <Typography color="text.secondary" mb={3}>
+          {workflow.description}
+        </Typography>
+
+        <Box display="flex" alignItems="center" gap={4} mb={4}>
+          <Box sx={{ position: "relative", width: 120, height: 120 }}>
+            <CircularProgress
+              variant="determinate"
+              value={100}
+              size={120}
+              sx={{ color: "#e0e0e0", position: "absolute" }}
+            />
+            <CircularProgress
+              variant="determinate"
+              value={progress}
+              size={120}
+              sx={{ color: progressColor, position: "absolute" }}
+            />
+            <Typography
+              sx={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 800,
+              }}
+            >
+              {progress}%
+            </Typography>
+          </Box>
+
+          <Typography fontWeight={700}>
+            {workflow.tasks.filter((t) => t.status === "completed").length} /{" "}
+            {workflow.tasks.length} tasks completed
           </Typography>
         </Box>
 
-        <Typography fontWeight={700}>
-          {workflow.tasks.filter((t) => t.status === "completed").length} /{" "}
-          {workflow.tasks.length} tasks completed
-        </Typography>
-      </Box>
+        <Button
+          variant="contained"
+          disabled={actionLoading}
+          onClick={() =>
+            navigate(`/admin/workflows/${workflowId}/createTask`)
+          }
+        >
+          + Add Task
+        </Button>
 
-      <Button
-        variant="contained"
-        sx={{ mb: 3 }}
-        onClick={() =>
-          navigate(`/admin/workflows/${workflowId}/createTask`)
-        }
-      >
-        + Add Task
-      </Button>
+        <Divider sx={{ my: 3 }} />
 
-      <Divider sx={{ mb: 3 }} />
-
-      {/* TASK LIST */}
-      {workflow.tasks.length === 0 ? (
-        <Typography color="text.secondary">No tasks yet</Typography>
-      ) : (
-        workflow.tasks.map((task, index) => {
+        {workflow.tasks.map((task, index) => {
           const c = STATUS_COLORS[task.status];
-
           return (
             <Box
               key={task._id}
@@ -232,7 +248,7 @@ export default function WorkflowDetails() {
                 borderRadius: 2,
               }}
             >
-              <Typography fontWeight={600} sx={{ flex: 2 }}>
+              <Typography sx={{ flex: 2 }} fontWeight={600}>
                 {index + 1}. {task.title}
               </Typography>
 
@@ -240,7 +256,6 @@ export default function WorkflowDetails() {
                 size="small"
                 sx={{ flex: 2 }}
                 value={task.assignedTo?._id || ""}
-                displayEmpty
                 onChange={(e) =>
                   assignUser(task._id, e.target.value || null)
                 }
@@ -256,27 +271,27 @@ export default function WorkflowDetails() {
               </Select>
 
               <Chip
-                label={task.status.replace("-", " ")}
+                label={task.status}
                 clickable
                 onClick={() => advanceStatus(task)}
                 sx={{
                   bgcolor: c.bg,
                   color: c.color,
                   fontWeight: 700,
-                  textTransform: "capitalize",
                 }}
               />
 
               <IconButton
                 color="error"
+                disabled={actionLoading}
                 onClick={() => deleteTask(task._id)}
               >
                 <DeleteIcon />
               </IconButton>
             </Box>
           );
-        })
-      )}
-    </Box>
+        })}
+      </Box>
+    </>
   );
 }
