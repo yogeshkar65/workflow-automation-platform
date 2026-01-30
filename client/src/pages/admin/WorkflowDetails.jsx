@@ -9,6 +9,8 @@ import {
   IconButton,
   Divider,
   CircularProgress,
+  Skeleton,
+  Alert,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -28,7 +30,7 @@ const STATUS_COLORS = {
 /* ===== PROGRESS ===== */
 const getProgress = (tasks = []) => {
   if (!tasks.length) return 0;
-  const done = tasks.filter(t => t.status === "completed").length;
+  const done = tasks.filter((t) => t.status === "completed").length;
   return Math.round((done / tasks.length) * 100);
 };
 
@@ -47,17 +49,63 @@ export default function WorkflowDetails() {
   const [workflow, setWorkflow] = useState(null);
   const [users, setUsers] = useState([]);
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  /* ===== LOAD WORKFLOW ===== */
   const loadWorkflow = async () => {
-    const res = await api.get(`/workflows/${workflowId}`);
-    setWorkflow(res.data);
+    try {
+      setLoading(true);
+      const res = await api.get(`/workflows/${workflowId}`);
+      setWorkflow(res.data);
+    } catch (err) {
+      setError("Failed to load workflow");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadWorkflow();
-    api.get("/users").then(res => setUsers(res.data || []));
+    api.get("/users").then((res) => setUsers(res.data || []));
   }, [workflowId]);
 
-  if (!workflow) return null;
+  /* ================== LOADING SKELETON ================== */
+  if (loading) {
+    return (
+      <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
+        <Skeleton width={120} height={40} sx={{ mb: 2 }} />
+        <Skeleton width="50%" height={42} />
+        <Skeleton width="70%" height={20} sx={{ mb: 4 }} />
+
+        <Box display="flex" gap={4} mb={4}>
+          <Skeleton variant="circular" width={120} height={120} />
+          <Skeleton width="40%" height={30} />
+        </Box>
+
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} height={70} sx={{ mb: 2 }} />
+        ))}
+      </Box>
+    );
+  }
+
+  /* ================== ERROR ================== */
+  if (error) {
+    return (
+      <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
+  if (!workflow) {
+    return (
+      <Box p={3}>
+        <Typography>No workflow found</Typography>
+      </Box>
+    );
+  }
 
   /* ===== TASK ACTIONS ===== */
   const advanceStatus = async (task) => {
@@ -78,7 +126,6 @@ export default function WorkflowDetails() {
     loadWorkflow();
   };
 
-  /* ===== WORKFLOW DELETE ===== */
   const deleteWorkflow = async () => {
     if (!window.confirm("Delete this workflow? This cannot be undone.")) return;
     await api.delete(`/workflows/${workflowId}`);
@@ -88,6 +135,7 @@ export default function WorkflowDetails() {
   const progress = getProgress(workflow.tasks);
   const progressColor = getProgressColor(progress);
 
+  /* ================== DATA ================== */
   return (
     <Box sx={{ maxWidth: 900, mx: "auto", p: 3 }}>
       {/* BACK */}
@@ -100,7 +148,7 @@ export default function WorkflowDetails() {
         {workflow.title}
       </Typography>
 
-      {/* DELETE WORKFLOW (ALWAYS VISIBLE) */}
+      {/* DELETE WORKFLOW */}
       <Box textAlign="right" mb={2}>
         <Button
           variant="outlined"
@@ -147,7 +195,7 @@ export default function WorkflowDetails() {
         </Box>
 
         <Typography fontWeight={700}>
-          {workflow.tasks.filter(t => t.status === "completed").length} /{" "}
+          {workflow.tasks.filter((t) => t.status === "completed").length} /{" "}
           {workflow.tasks.length} tasks completed
         </Typography>
       </Box>
@@ -165,66 +213,70 @@ export default function WorkflowDetails() {
       <Divider sx={{ mb: 3 }} />
 
       {/* TASK LIST */}
-      {workflow.tasks.map((task, index) => {
-        const c = STATUS_COLORS[task.status];
+      {workflow.tasks.length === 0 ? (
+        <Typography color="text.secondary">No tasks yet</Typography>
+      ) : (
+        workflow.tasks.map((task, index) => {
+          const c = STATUS_COLORS[task.status];
 
-        return (
-          <Box
-            key={task._id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              mb: 2,
-              p: 2,
-              border: "1px solid #e0e0e0",
-              borderRadius: 2,
-            }}
-          >
-            <Typography fontWeight={600} sx={{ flex: 2 }}>
-              {index + 1}. {task.title}
-            </Typography>
-
-            <Select
-              size="small"
-              sx={{ flex: 2 }}
-              value={task.assignedTo?._id || ""}
-              displayEmpty
-              onChange={(e) =>
-                assignUser(task._id, e.target.value || null)
-              }
-            >
-              <MenuItem value="">
-                <em>Unassigned</em>
-              </MenuItem>
-              {users.map(u => (
-                <MenuItem key={u._id} value={u._id}>
-                  {u.name}
-                </MenuItem>
-              ))}
-            </Select>
-
-            <Chip
-              label={task.status.replace("-", " ")}
-              clickable
-              onClick={() => advanceStatus(task)}
+          return (
+            <Box
+              key={task._id}
               sx={{
-                bgcolor: c.bg,
-                color: c.color,
-                fontWeight: 700,
-                textTransform: "capitalize",
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                mb: 2,
+                p: 2,
+                border: "1px solid #e0e0e0",
+                borderRadius: 2,
               }}
-            />
-
-            <IconButton
-              color="error"
-              onClick={() => deleteTask(task._id)}
             >
-              <DeleteIcon />
-            </IconButton>
-          </Box>
-        );
-      })}
+              <Typography fontWeight={600} sx={{ flex: 2 }}>
+                {index + 1}. {task.title}
+              </Typography>
+
+              <Select
+                size="small"
+                sx={{ flex: 2 }}
+                value={task.assignedTo?._id || ""}
+                displayEmpty
+                onChange={(e) =>
+                  assignUser(task._id, e.target.value || null)
+                }
+              >
+                <MenuItem value="">
+                  <em>Unassigned</em>
+                </MenuItem>
+                {users.map((u) => (
+                  <MenuItem key={u._id} value={u._id}>
+                    {u.name}
+                  </MenuItem>
+                ))}
+              </Select>
+
+              <Chip
+                label={task.status.replace("-", " ")}
+                clickable
+                onClick={() => advanceStatus(task)}
+                sx={{
+                  bgcolor: c.bg,
+                  color: c.color,
+                  fontWeight: 700,
+                  textTransform: "capitalize",
+                }}
+              />
+
+              <IconButton
+                color="error"
+                onClick={() => deleteTask(task._id)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          );
+        })
+      )}
     </Box>
   );
 }
