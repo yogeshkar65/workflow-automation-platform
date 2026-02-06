@@ -6,11 +6,12 @@ require("dotenv").config();
 const app = express();
 
 app.use(cors({
-  origin: "https://rococo-biscuit-351be8.netlify.app",
+  origin: "https://chic-kulfi-9ff415.netlify.app",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+
 
 app.use(express.json());
 
