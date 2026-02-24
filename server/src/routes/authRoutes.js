@@ -6,7 +6,7 @@ const { adminOnly } = require("../middlewares/roleMiddleware");
 const {
   registerUser,
   loginUser
-} = require("../controllers/authcontroller");
+} = require("../controllers/authController");
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
