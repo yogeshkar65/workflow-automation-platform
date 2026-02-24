@@ -48,4 +48,9 @@ const taskSchema = new mongoose.Schema(
   }
 );
 
+taskSchema.index({ workflow: 1, order: 1 });
+taskSchema.index({ assignedTo: 1 });
+taskSchema.index({ status: 1 });
+taskSchema.index({ createdBy: 1 });
+
 module.exports = mongoose.model("Task", taskSchema);

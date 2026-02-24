@@ -25,4 +25,8 @@ const workflowSchema = new mongoose.Schema(
     timestamps : true
 }
 );
+
+workflowSchema.index({ createdBy: 1 });
+workflowSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model("Workflow",workflowSchema);

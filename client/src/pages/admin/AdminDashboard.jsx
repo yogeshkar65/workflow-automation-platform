@@ -23,6 +23,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import socket from "../../services/socket"; // ✅ added
 
 /* ===== COLORS ===== */
 const COLORS = {
@@ -43,14 +44,34 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  /* ===== FETCH ===== */
+  /* ===== FETCH FUNCTION (extracted) ===== */
+  const fetchWorkflows = async () => {
+    try {
+      const res = await api.get("/workflows");
+      setWorkflows(res.data || []);
+    } catch {
+      setWorkflows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ===== INITIAL FETCH ===== */
   useEffect(() => {
-    api
-      .get("/workflows")
-      .then((res) => setWorkflows(res.data || []))
-      .catch(() => setWorkflows([]))
-      .finally(() => setLoading(false));
+    fetchWorkflows();
   }, []);
+
+  /* ===== SOCKET LISTENER ===== */
+  useEffect(() => {
+    socket.on("taskUpdated", () => {
+      fetchWorkflows();
+    });
+
+    return () => {
+      socket.off("taskUpdated");
+    };
+  }, []);
+
 
   /* ===== CALCULATIONS ===== */
   const totalWorkflows = workflows.length;
@@ -128,11 +149,10 @@ export default function AdminDashboard() {
       inProgressWorkflows,
       completedWorkflows,
       notStartedWorkflows,
-      pendingTasks,
+      pendingTasks
     ]
   );
 
-  const totalPages = Math.ceil(workflows.length / PAGE_SIZE);
   const paginated = workflows.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE

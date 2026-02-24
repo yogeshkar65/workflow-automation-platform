@@ -1,17 +1,18 @@
-import { useNavigate } from "react-router-dom";
-import { setNavigate } from "./utils/navigation";
-import Navbar from "./components/Navbar";
-import AppRoutes from "./routes/AppRoutes";
 import { useEffect } from "react";
+import Navbar from "./components/NavBar";
+import AppRoutes from "./routes/AppRoutes";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import socket from "./services/socket";
 
 function App() {
-  const navigate = useNavigate();
 
   useEffect(() => {
-    setNavigate(navigate);
-  }, [navigate]);
+    if (!socket.connected) {
+      socket.connect();
+      console.log("🔌 Socket connected from App");
+    }
+  }, []);
 
   return (
     <>

@@ -1,7 +1,7 @@
 const Workflow = require("../models/workflow");
 const Task = require("../models/task");
-const { getWorkflowStatus } = require("../utils/workflowProgress");
 
+/* ================= CREATE WORKFLOW ================= */
 exports.createWorkflow = async (req, res) => {
   try {
     const { title, description } = req.body;
@@ -20,6 +20,10 @@ exports.createWorkflow = async (req, res) => {
     const populatedWorkflow = await Workflow.findById(workflow._id)
       .populate("createdBy", "name email");
 
+    // 🔥 Emit socket event
+    const io = req.app.get("io");
+    io.emit("taskUpdated");
+
     res.status(201).json(populatedWorkflow);
   } catch (error) {
     res.status(500).json({
@@ -28,6 +32,8 @@ exports.createWorkflow = async (req, res) => {
     });
   }
 };
+
+/* ================= GET ALL WORKFLOWS ================= */
 exports.getWorkflows = async (req, res) => {
   try {
     const workflows = await Workflow.find()
@@ -40,15 +46,7 @@ exports.getWorkflows = async (req, res) => {
       })
       .populate("createdBy", "name email");
 
-    const enrichedWorkflows = workflows.map(workflow => {
-      const status = getWorkflowStatus(workflow.tasks);
-      return {
-        ...workflow.toObject(),
-        status,
-      };
-    });
-
-    res.status(200).json(enrichedWorkflows);
+    res.status(200).json(workflows);
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch workflows",
@@ -57,6 +55,7 @@ exports.getWorkflows = async (req, res) => {
   }
 };
 
+/* ================= GET WORKFLOW BY ID ================= */
 exports.getWorkflowById = async (req, res) => {
   try {
     const workflow = await Workflow.findById(req.params.id)
@@ -85,12 +84,7 @@ exports.getWorkflowById = async (req, res) => {
       }
     }
 
-    const status = getWorkflowStatus(workflow.tasks);
-
-    res.status(200).json({
-      ...workflow.toObject(),
-      status,
-    });
+    res.status(200).json(workflow);
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch workflow",
@@ -99,6 +93,7 @@ exports.getWorkflowById = async (req, res) => {
   }
 };
 
+/* ================= ADD TASK TO WORKFLOW ================= */
 exports.addTaskToWorkflow = async (req, res) => {
   try {
     const { workflowId, taskId } = req.body;
@@ -118,11 +113,13 @@ exports.addTaskToWorkflow = async (req, res) => {
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
+
     if (workflow.tasks.includes(taskId)) {
       return res.status(400).json({
         message: "Task already added to workflow",
       });
     }
+
     task.workflow = workflowId;
     await task.save();
 
@@ -139,6 +136,10 @@ exports.addTaskToWorkflow = async (req, res) => {
       })
       .populate("createdBy", "name email");
 
+    // 🔥 Emit socket event
+    const io = req.app.get("io");
+    io.emit("taskUpdated");
+
     res.status(200).json(populatedWorkflow);
 
   } catch (error) {
@@ -149,6 +150,7 @@ exports.addTaskToWorkflow = async (req, res) => {
   }
 };
 
+/* ================= DELETE WORKFLOW ================= */
 exports.deleteWorkflow = async (req, res) => {
   try {
     const workflow = await Workflow.findById(req.params.id);
@@ -157,10 +159,15 @@ exports.deleteWorkflow = async (req, res) => {
       return res.status(404).json({ message: "Workflow not found" });
     }
 
-
+    // 1️⃣ Delete all tasks of this workflow
     await Task.deleteMany({ workflow: workflow._id });
 
+    // 2️⃣ Delete workflow
     await workflow.deleteOne();
+
+    // 3️⃣ Emit SAME global event used everywhere
+    const io = req.app.get("io");
+    io.emit("taskUpdated"); // 🔥 change this
 
     res.status(200).json({ message: "Workflow deleted successfully" });
   } catch (error) {
@@ -170,4 +177,3 @@ exports.deleteWorkflow = async (req, res) => {
     });
   }
 };
-

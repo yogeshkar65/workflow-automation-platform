@@ -5,14 +5,11 @@ const { protect } = require("../middlewares/authMiddleware");
 const { adminOnly } = require("../middlewares/roleMiddleware");
 const {
   registerUser,
-  loginUser,
-  getProfile,
-} = require("../controllers/authController");
+  loginUser
+} = require("../controllers/authcontroller");
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-router.get("/profile", protect, getProfile);
-
 router.get("/admin_test", protect, adminOnly, (req, res) => {
   res.json({ message: "Admin access granted" });
 });

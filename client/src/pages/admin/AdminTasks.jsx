@@ -24,6 +24,7 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useLocation } from "react-router-dom";
 import api from "../../services/api";
+import socket from "../../services/socket"; // ✅ added
 import { showSuccess, showError } from "../../utils/toast";
 
 /* ===== STATUS COLORS ===== */
@@ -37,29 +38,38 @@ function AdminTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /* ===== CENTER ACTION ===== */
   const [actionText, setActionText] = useState(null);
-
-  /* ===== DELETE DIALOG ===== */
   const [deleteId, setDeleteId] = useState(null);
 
   const location = useLocation();
   const statusFilter = new URLSearchParams(location.search).get("status");
 
-  /* ===== LOAD TASKS ===== */
-  useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        const res = await api.get("/tasks");
-        setTasks(res.data || []);
-      } catch {
-        showError("Failed to load tasks");
-      } finally {
-        setLoading(false);
-      }
-    };
+  /* ===== LOAD TASKS FUNCTION (extracted) ===== */
+  const loadTasks = async () => {
+    try {
+      const res = await api.get("/tasks");
+      setTasks(res.data || []);
+    } catch {
+      showError("Failed to load tasks");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  /* ===== INITIAL LOAD ===== */
+  useEffect(() => {
     loadTasks();
+  }, []);
+
+  /* ===== SOCKET LISTENER ===== */
+  useEffect(() => {
+    socket.on("taskUpdated", () => {
+      loadTasks();
+    });
+
+    return () => {
+      socket.off("taskUpdated");
+    };
   }, []);
 
   const filteredTasks = statusFilter
@@ -71,8 +81,8 @@ function AdminTasks() {
     try {
       setActionText("Deleting task...");
       await api.delete(`/tasks/${deleteId}`);
-      setTasks((prev) => prev.filter((t) => t._id !== deleteId));
       showSuccess("Task deleted successfully");
+      // No manual state update — socket will refresh
     } catch {
       showError("Failed to delete task");
     } finally {
@@ -81,6 +91,7 @@ function AdminTasks() {
     }
   };
 
+  /* ===== REST OF YOUR UI UNCHANGED ===== */
   /* ================= LOADING SKELETON ================= */
   if (loading) {
     return (

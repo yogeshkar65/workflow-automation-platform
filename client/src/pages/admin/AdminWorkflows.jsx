@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
+import socket from "../../services/socket";
 
 /* ================= HELPERS ================= */
 const getProgress = (tasks = []) => {
@@ -58,20 +59,30 @@ export default function AdminWorkflows() {
 
   const statusFilter = searchParams.get("status");
 
-  useEffect(() => {
-    const fetchWorkflows = async () => {
-      try {
-        const res = await api.get("/workflows");
-        setWorkflows(res.data || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchWorkflows = async () => {
+    try {
+      const res = await api.get("/workflows");
+      setWorkflows(res.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchWorkflows();
   }, []);
+
+  useEffect(() => {
+  socket.on("taskUpdated", () => {
+    fetchWorkflows();
+  });
+
+  return () => {
+    socket.off("taskUpdated");
+  };
+}, []);
 
   /* ================= FILTER LOGIC ================= */
   const filteredWorkflows = useMemo(() => {

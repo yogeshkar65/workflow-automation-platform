@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
+import socket from "../services/socket";
 import {
   Box,
   Typography,
@@ -51,13 +52,32 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [action, setAction] = useState(null);
 
-  /* ===== FETCH TASKS ===== */
+  /* ===== LOAD TASKS FUNCTION ===== */
+  const loadTasks = async () => {
+    try {
+      const res = await api.get("/tasks");
+      setTasks(res.data || []);
+    } catch {
+      setError("Failed to load tasks");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ===== INITIAL LOAD ===== */
   useEffect(() => {
-    api
-      .get("/tasks")
-      .then((res) => setTasks(res.data || []))
-      .catch(() => setError("Failed to load tasks"))
-      .finally(() => setLoading(false));
+    loadTasks();
+  }, []);
+
+  /* ===== SOCKET LISTENER ===== */
+  useEffect(() => {
+    socket.on("taskUpdated", () => {
+      loadTasks();
+    });
+
+    return () => {
+      socket.off("taskUpdated");
+    };
   }, []);
 
   /* ===== STATS ===== */
@@ -107,13 +127,6 @@ export default function Dashboard() {
     try {
       setAction("Updating status...");
       await api.put(`/tasks/${task._id}/status`, { status: next });
-
-      setTasks((prev) =>
-        prev.map((t) =>
-          t._id === task._id ? { ...t, status: next } : t
-        )
-      );
-
       toast.success("Status updated");
     } catch {
       toast.error("Task update failed");
@@ -121,7 +134,6 @@ export default function Dashboard() {
       setAction(null);
     }
   };
-
   /* ===== LOADING ===== */
   if (loading) {
     return (
@@ -164,7 +176,11 @@ export default function Dashboard() {
             mb={4}
           >
             {[
-              { key: "all", label: "All", value: total, color: "#1976d2" },
+              { key: "all",
+                label: "All", 
+                value: total, 
+                color: "#1976d2"
+              },
               {
                 key: "pending",
                 label: "Pending",

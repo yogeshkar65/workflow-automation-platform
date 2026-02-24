@@ -4,8 +4,13 @@ import {
   Button,
   Typography,
   Box,
+  Badge
 } from "@mui/material";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import socket from "../services/socket";
 import WorkflowLogo from "./WorkflowLogo";
 
 function Navbar() {
@@ -13,18 +18,61 @@ function Navbar() {
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user"));
 
+  const [notifications, setNotifications] = useState(0);
+
   const handleLogout = () => {
     localStorage.clear();
     navigate("/login");
   };
 
-  const goDashboard = () => {
-    if (!token || !user) {
-      navigate("/login");
-      return;
-    }
-    navigate(user.role === "admin" ? "/admin" : "/dashboard");
-  };
+ const goDashboard = () => {
+  if (!token || !user) {
+    navigate("/login");
+    return;
+  }
+
+  if (user.role === "user") {
+    setNotifications(0); // ✅ reset badge only for users
+  }
+
+  navigate(user.role === "admin" ? "/admin" : "/dashboard");
+};
+
+  /* =====================================================
+     🟢 USER ONLINE EMIT + 🔔 NOTIFICATION LISTENER
+  ===================================================== */
+        useEffect(() => {
+                const storedUser = JSON.parse(localStorage.getItem("user"));
+                const storedToken = localStorage.getItem("token");
+
+                if (!storedUser || !storedToken) return;
+
+                const userId = storedUser._id;
+
+                const emitOnline = () => {
+                    socket.emit("userOnline", userId);
+                    console.log("📤 userOnline emitted");
+                };
+
+                if (socket.connected) {
+                    emitOnline();
+                } else {
+                    socket.once("connect", emitOnline);
+                }
+
+                // 🔥 Prevent duplicate listeners
+                socket.off("newTaskAssigned");
+
+                socket.on("newTaskAssigned", (data) => {
+                    setNotifications((prev) => prev + 1);
+                    toast.info(data.message);
+                });
+
+                return () => {
+                    socket.off("newTaskAssigned");
+                };
+
+            }, []);
 
   return (
     <AppBar position="fixed" elevation={1}>
@@ -43,8 +91,6 @@ function Navbar() {
             alignItems: "center",
             gap: 1,
             textDecoration: "none",
-
-            
             "& svg": {
               transition: "transform 0.35s ease",
             },
@@ -68,10 +114,8 @@ function Navbar() {
           </Typography>
         </Box>
 
-        {/* PUSH NAV TO RIGHT */}
         <Box sx={{ flexGrow: 1 }} />
 
-        {/* NAV — hard right */}
         <Box display="flex" alignItems="center" gap={1}>
           <Button color="inherit" component={Link} to="/">
             Home
@@ -91,6 +135,18 @@ function Navbar() {
               <Button color="inherit" onClick={goDashboard}>
                 Dashboard
               </Button>
+
+              {/* 🔔 Notification Icon (Only for users) */}
+              {user?.role === "user" && (
+                <Badge
+                  badgeContent={notifications}
+                  color="error"
+                  sx={{ mr: 1 }}
+                >
+                  <NotificationsIcon sx={{ color: "#fff" }} />
+                </Badge>
+              )}
+
               <Button color="inherit" onClick={handleLogout}>
                 Logout
               </Button>
@@ -102,4 +158,4 @@ function Navbar() {
   );
 }
 
-export default Navbar;
+export default Navbar; 

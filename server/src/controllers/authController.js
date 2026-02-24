@@ -1,11 +1,10 @@
 const User = require("../models/user");
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/generateToken");
 
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     // frontend safety check
     if (!name || !email || !password) {
@@ -21,7 +20,7 @@ exports.registerUser = async (req, res) => {
       name,
       email,
       password, // hashed by schema hook
-      role: role || "user",
+      role: "user",
     });
 
     res.status(201).json({
@@ -40,6 +39,8 @@ exports.registerUser = async (req, res) => {
     });
   }
 };
+
+
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -62,6 +63,3 @@ exports.loginUser = async (req, res) => {
   });
 };
 
-exports.getProfile = async (req, res) => {
-  res.json(req.user);
-};

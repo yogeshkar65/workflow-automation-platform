@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useState } from "react";
+import AIChat from "../components/AIChat"; // ✅ ADD THIS
 
 const APPBAR_HEIGHT = 64;
 const DRAWER_WIDTH = 240;
@@ -23,7 +24,6 @@ export default function AdminLayout() {
 
   return (
     <Box sx={{ display: "flex" }}>
-
       <Drawer
         variant="permanent"
         sx={{
@@ -39,7 +39,6 @@ export default function AdminLayout() {
           },
         }}
       >
-        
         <Box
           sx={{
             display: "flex",
@@ -59,7 +58,6 @@ export default function AdminLayout() {
           </IconButton>
         </Box>
 
-       
         <List sx={{ px: 1 }}>
           {[
             { label: "Dashboard", path: "/admin" },
@@ -87,7 +85,6 @@ export default function AdminLayout() {
         </List>
       </Drawer>
 
-    
       <Box
         component="main"
         sx={{
@@ -96,8 +93,10 @@ export default function AdminLayout() {
           px: 3,
         }}
       >
-        <Outlet /> 
+        <Outlet />
       </Box>
+
+      <AIChat />
     </Box>
   );
 }
