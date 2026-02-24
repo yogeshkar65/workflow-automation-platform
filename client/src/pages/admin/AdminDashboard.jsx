@@ -23,7 +23,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
-import socket from "../../services/socket"; // ✅ added
+import socket from "../../services/socket";
 
 /* ===== COLORS ===== */
 const COLORS = {

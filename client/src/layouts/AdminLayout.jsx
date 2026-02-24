@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useState } from "react";
-import AIChat from "../components/AIChat"; // ✅ ADD THIS
+import AIChat from "../components/AIChat"; 
 
 const APPBAR_HEIGHT = 64;
 const DRAWER_WIDTH = 240;

@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { Box } from "@mui/material";
-import Navbar from "../components/NavBar";
+import Navbar from "../components/Navbar";
 import AIChat from "../components/AIChat";  // ✅ add this
 
 export default function UserLayout() {
