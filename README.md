@@ -552,7 +552,3 @@ Distributed event processing (Kafka integration)
 Microservices transition
 
 Advanced monitoring & observability
-
-👨‍💻 Author
-
-Designed and developed as a scalable, AI-integrated enterprise workflow orchestration platform using the MERN stack.
